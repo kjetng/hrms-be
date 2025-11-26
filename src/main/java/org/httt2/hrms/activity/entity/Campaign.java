@@ -1,4 +1,4 @@
-package org.httt2.hrms.entity;
+package org.httt2.hrms.activity.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;

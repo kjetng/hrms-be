@@ -1,7 +1,15 @@
+buildscript {
+    dependencies {
+        classpath "org.flywaydb:flyway-database-postgresql:11.17.1"
+    }
+}
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.7'
     id 'io.spring.dependency-management' version '1.1.7'
+    // this provides the tasks
+    id 'org.flywaydb.flyway' version '11.17.1'
 }
 
 group = 'org.httt2'
@@ -30,6 +38,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'io.github.cdimascio:dotenv-java:3.0.0'
+
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'org.postgresql:postgresql'
     annotationProcessor 'org.projectlombok:lombok'
@@ -42,4 +51,14 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+flyway {
+    url = System.getenv('DB_URL') ?: 'jdbc:postgresql://localhost:5432/hrms'
+    user = System.getenv('DB_USERNAME') ?: 'postgres'
+    password = System.getenv('DB_PASSWORD') ?: 'postgres'
+
+    schemas = ['public']
+    locations = ['classpath:db/migration']
+    baselineOnMigrate = true
 }

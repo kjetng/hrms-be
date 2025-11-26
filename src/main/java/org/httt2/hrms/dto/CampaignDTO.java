@@ -1,7 +1,7 @@
 package org.httt2.hrms.dto;
 
 import lombok.Data;
-import org.httt2.hrms.entity.Campaign;
+import org.httt2.hrms.activity.entity.Campaign;
 
 import java.time.LocalDate;
 import java.time.LocalTime;

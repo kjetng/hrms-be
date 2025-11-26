@@ -1,7 +1,7 @@
 package org.httt2.hrms.config;
 
 import lombok.RequiredArgsConstructor;
-import org.httt2.hrms.entity.Campaign;
+import org.httt2.hrms.activity.entity.Campaign;
 import org.httt2.hrms.repository.CampaignRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
