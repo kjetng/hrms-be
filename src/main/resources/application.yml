@@ -8,8 +8,24 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    enabled: false # Tạm thời tắt Flyway để tránh xung đột với ddl-auto: update
+# Server configuration
+server:
+  port: 8080
+  #servlet:
+   # context-path: /api
+
+# Logging
+logging:
+  level:
+    org.httt2.hrms: DEBUG
+    org.hibernate.SQL: DEBUG
