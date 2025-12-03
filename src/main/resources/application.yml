@@ -37,5 +37,5 @@ application:
       secret-key: ${JWT_SECRET}
 
       # Expiration time in milliseconds.
-      # Default: 86400000000 (100 day) if not provided in env.
-      expiration: ${JWT_EXPIRATION:86400000000} # 100 days
+      # Default: 86400000 (1 day) if not provided in env.
+      expiration: ${JWT_EXPIRATION:86400000} # 1 day

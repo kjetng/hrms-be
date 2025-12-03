@@ -1,5 +1,6 @@
 package org.httt2.hrms.auth.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.httt2.hrms.auth.controller.dto.AuthResponse;
 import org.httt2.hrms.auth.controller.dto.LoginRequest;
@@ -20,14 +21,14 @@ public class AuthenticationController {
 
   @PostMapping("/register")
   public ResponseEntity<AuthResponse> register(
-      @RequestBody RegisterRequest request
+      @RequestBody @Valid RegisterRequest request
   ) {
     return ResponseEntity.ok(service.register(request));
   }
 
   @PostMapping("/login")
   public ResponseEntity<AuthResponse> authenticate(
-      @RequestBody LoginRequest request
+      @RequestBody @Valid LoginRequest request
   ) {
     return ResponseEntity.ok(service.authenticate(request));
   }
