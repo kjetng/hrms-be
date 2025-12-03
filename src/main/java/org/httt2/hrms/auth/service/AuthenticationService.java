@@ -10,6 +10,7 @@ import org.httt2.hrms.auth.entity.User;
 import org.httt2.hrms.auth.repository.EmployeeRepository;
 import org.httt2.hrms.auth.repository.UserRepository;
 import org.httt2.hrms.employee.entity.Employee;
+import org.httt2.hrms.exception.EmailAlreadyExistsException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -37,7 +38,7 @@ public class AuthenticationService {
    */
   public AuthResponse register(RegisterRequest request) {
     if (userRepository.findByEmail(request.email()).isPresent()) {
-      throw new RuntimeException("Email already in use");
+      throw new EmailAlreadyExistsException(request.email());
     }
 
     // Try to find an employee with this email
