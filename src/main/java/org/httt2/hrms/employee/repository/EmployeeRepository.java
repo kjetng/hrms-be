@@ -1,4 +1,4 @@
-package org.httt2.hrms.auth.repository;
+package org.httt2.hrms.employee.repository;
 
 import org.httt2.hrms.employee.entity.Employee;
 import org.springframework.data.jpa.repository.JpaRepository;

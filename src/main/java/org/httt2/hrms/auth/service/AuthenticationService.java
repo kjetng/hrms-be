@@ -7,7 +7,7 @@ import org.httt2.hrms.auth.controller.dto.LoginRequest;
 import org.httt2.hrms.auth.controller.dto.RegisterRequest;
 import org.httt2.hrms.auth.entity.Role;
 import org.httt2.hrms.auth.entity.User;
-import org.httt2.hrms.auth.repository.EmployeeRepository;
+import org.httt2.hrms.employee.repository.EmployeeRepository;
 import org.httt2.hrms.auth.repository.UserRepository;
 import org.httt2.hrms.employee.entity.Employee;
 import org.httt2.hrms.exception.EmailAlreadyExistsException;
