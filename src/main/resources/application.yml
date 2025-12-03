@@ -8,7 +8,7 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
@@ -18,7 +18,6 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
     enabled: false # Tạm thời tắt Flyway để tránh xung đột với ddl-auto: update
-# Server configuration
 server:
   port: 8080
   #servlet:
@@ -29,3 +28,14 @@ logging:
   level:
     org.httt2.hrms: DEBUG
     org.hibernate.SQL: DEBUG
+
+application:
+  security:
+    jwt:
+      # This looks for the JWT_SECRET env var.
+      # It must be at least 256-bit (32 characters+).
+      secret-key: ${JWT_SECRET}
+
+      # Expiration time in milliseconds.
+      # Default: 86400000 (1 day) if not provided in env.
+      expiration: ${JWT_EXPIRATION:86400000} # 1 day
