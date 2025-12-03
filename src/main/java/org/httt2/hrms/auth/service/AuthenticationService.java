@@ -12,6 +12,7 @@ import org.httt2.hrms.auth.repository.UserRepository;
 import org.httt2.hrms.employee.entity.Employee;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -45,7 +46,7 @@ public class AuthenticationService {
     var user = User.builder()
         .email(request.email())
         .password(passwordEncoder.encode(request.password()))
-        .role(request.role() != null ? request.role() : Role.USER)
+        .role(Optional.ofNullable(request.role()).orElse(Role.USER))
         // If existingEmployee is present, link it. Otherwise null.
         .employee(existingEmployee.orElse(null))
         .build();
@@ -69,7 +70,7 @@ public class AuthenticationService {
     );
 
     var user = userRepository.findByEmail(request.email())
-        .orElseThrow();
+        .orElseThrow(() -> new UsernameNotFoundException("User not found after authentication"));
 
     var jwtToken = jwtService.generateToken(user);
     return new AuthResponse(jwtToken);

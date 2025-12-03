@@ -1,0 +1,2 @@
+ALTER TABLE app_user
+    ALTER COLUMN role SET NOT NULL;
