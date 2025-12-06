@@ -30,9 +30,10 @@ public class SecurityConfig {
         .csrf(AbstractHttpConfigurer::disable)
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .authorizeHttpRequests(authz -> authz
-            .requestMatchers("/auth/**").permitAll()
-            .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-            .anyRequest().authenticated()
+//            .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/**").permitAll()
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                .anyRequest().authenticated()
         )
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authenticationProvider(authenticationProvider) // Use the injected provider
