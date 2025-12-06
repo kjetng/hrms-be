@@ -39,3 +39,11 @@ application:
       # Expiration time in milliseconds.
       # Default: 86400000 (1 day) if not provided in env.
       expiration: ${JWT_EXPIRATION:86400000} # 1 day
+
+# Config AWS S3
+aws:
+  accessKeyId: ${AWS_ACCESS_KEY_ID:AKIA_TEST_KEY}       # Thay bằng key thật sau này
+  secretKey: ${AWS_SECRET_ACCESS_KEY:SECRET_TEST_KEY}   # Thay bằng key thật sau này
+  region: ap-southeast-1
+  s3:
+    bucket: htt2-hrms-bucket
