@@ -5,6 +5,7 @@ import org.httt2.hrms.activity.entity.Campaign;
 import org.httt2.hrms.activity.service.CampaignService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.httt2.hrms.activity.dto.CampaignCreateRequest;
 
 import java.util.List;
 import java.util.Optional;
@@ -77,6 +78,21 @@ public class CampaignController {
             Long count = campaignService.getTotalCampaigns();
             return ResponseEntity.ok(count);
         } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PostMapping
+    public ResponseEntity<?> createCampaign(@RequestBody CampaignCreateRequest request) {
+        try {
+            // Gọi Service xử lý
+            Campaign newCampaign = campaignService.createCampaign(request);
+            return ResponseEntity.ok(newCampaign);
+        } catch (IllegalArgumentException e) {
+            // Trả về lỗi 400 nếu dữ liệu không hợp lệ (vd: ngày kết thúc < bắt đầu)
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace(); // Log lỗi để debug
             return ResponseEntity.internalServerError().build();
         }
     }
