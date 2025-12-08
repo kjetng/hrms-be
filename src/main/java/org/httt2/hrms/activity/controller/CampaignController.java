@@ -96,4 +96,18 @@ public class CampaignController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateCampaign(@PathVariable Long id, @RequestBody CampaignCreateRequest request) {
+        try {
+            Campaign updatedCampaign = campaignService.updateCampaign(id, request);
+            return ResponseEntity.ok(updatedCampaign);
+        } catch (RuntimeException e) {
+            // Bắt lỗi không tìm thấy ID hoặc lỗi validate ngày tháng
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
 }
