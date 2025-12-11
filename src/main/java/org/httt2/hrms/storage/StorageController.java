@@ -1,48 +1,48 @@
 package org.httt2.hrms.storage;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import org.httt2.hrms.storage.model.PutPresignedResult;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
-import java.time.Duration;
-import java.util.UUID;
+import java.util.List;
 
 @RestController
-@RequestMapping("/api/storage")
+@RequestMapping("/storage")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class StorageController {
 
-    private final S3Presigner s3Presigner; // Bean này cần được cấu hình trong AppConfig
+  private final FileStorageService fileStorageService;
 
-    // Lấy thông tin từ file cấu hình hoặc biến môi trường
-    @Value("${aws.s3.bucket:htt2-hrms-bucket}") 
-    private String bucketName;
+//  @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+//  public ResponseEntity<List<String>> uploadFiles(
+//      @RequestPart("files") List<MultipartFile> files
+//  ) {
+//    List<String> fileKeys = fileStorageService.uploadMultiple(files);
+//    return ResponseEntity.ok(fileKeys);
+//  }
 
-    @GetMapping("/presigned-url")
-    public ResponseEntity<String> getPresignedUrl(@RequestParam String extension) {
-        // Tạo tên file ngẫu nhiên để tránh trùng lặp: campaigns/uuid.jpg
-        String key = "campaigns/" + UUID.randomUUID().toString() + "." + extension;
+  /**
+   * Deletes one or multiple files by Key.
+   */
+  @DeleteMapping("/delete")
+  public ResponseEntity<Void> deleteFiles(
+      @RequestBody List<String> fileKeys
+  ) {
+    fileStorageService.deleteMultiple(fileKeys);
+    return ResponseEntity.noContent().build();
+  }
 
-        PutObjectRequest objectRequest = PutObjectRequest.builder()
-                .bucket(bucketName)
-                .key(key)
-                .contentType("image/" + extension) // vd: image/jpeg
-                .build();
-
-        PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-                .signatureDuration(Duration.ofMinutes(10)) // Link sống trong 10 phút
-                .putObjectRequest(objectRequest)
-                .build();
-
-        PresignedPutObjectRequest presignedRequest = s3Presigner.presignPutObject(presignRequest);
-        
-        // Trả về URL để upload
-        return ResponseEntity.ok(presignedRequest.url().toString());
-    }
+  /**
+   * Generates a Presigned URL (valid for 30 minutes) to view a file.
+   * Useful when the frontend only has the Key (e.g. "uuid_img.jpg")
+   * and needs a valid link to put in <img src="...">
+   */
+  @GetMapping("/presigned-url")
+  public ResponseEntity<PutPresignedResult> getPresignedUrl(
+      @RequestParam("fileName") String fileName,
+      @RequestParam("contentType") String contentType
+  ) {
+    return ResponseEntity.ok(fileStorageService.getPresignedUrl(fileName, contentType));
+  }
 }
