@@ -8,7 +8,7 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
@@ -42,8 +42,8 @@ application:
 
 # Config AWS S3
 aws:
-  accessKeyId: ${AWS_ACCESS_KEY_ID:AKIA_TEST_KEY}       # Thay bằng key thật sau này
-  secretKey: ${AWS_SECRET_ACCESS_KEY:SECRET_TEST_KEY}   # Thay bằng key thật sau này
-  region: ap-southeast-1
+  accessKeyId: ${AWS_ACCESS_KEY}       # Thay bằng key thật sau này
+  secretKey: ${AWS_SECRET_KEY}   # Thay bằng key thật sau này
+  region: ${AWS_REGION}
   s3:
     bucket: htt2-hrms-bucket
