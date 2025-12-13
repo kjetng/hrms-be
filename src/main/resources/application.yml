@@ -46,4 +46,4 @@ aws:
   secretKey: ${AWS_SECRET_KEY}   # Thay bằng key thật sau này
   region: ${AWS_REGION}
   s3:
-    bucket: htt2-hrms-bucket
+    bucket: ${AWS_BUCKET_NAME}

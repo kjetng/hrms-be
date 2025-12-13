@@ -25,14 +25,17 @@ public class StorageController {
     private String bucketName;
 
     @GetMapping("/presigned-url")
-    public ResponseEntity<String> getPresignedUrl(@RequestParam String extension) {
+    public ResponseEntity<String> getPresignedUrl(
+            @RequestParam String extension,
+            @RequestParam String contentType // 1. Thêm tham số này để nhận đúng loại file từ Frontend
+    ) {
         // Tạo tên file ngẫu nhiên để tránh trùng lặp: campaigns/uuid.jpg
         String key = "campaigns/" + UUID.randomUUID().toString() + "." + extension;
 
         PutObjectRequest objectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(key)
-                .contentType("image/" + extension) // vd: image/jpeg
+                .contentType(contentType) // vd: image/jpeg
                 .build();
 
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
