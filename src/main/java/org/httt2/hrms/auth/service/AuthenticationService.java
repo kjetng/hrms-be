@@ -5,6 +5,7 @@ import org.httt2.hrms.auth.config.JwtService;
 import org.httt2.hrms.auth.controller.dto.AuthResponse;
 import org.httt2.hrms.auth.controller.dto.LoginRequest;
 import org.httt2.hrms.auth.controller.dto.RegisterRequest;
+import org.httt2.hrms.auth.controller.dto.UserInfoResponse;
 import org.httt2.hrms.auth.entity.Role;
 import org.httt2.hrms.auth.entity.User;
 import org.httt2.hrms.employee.repository.EmployeeRepository;
@@ -13,10 +14,12 @@ import org.httt2.hrms.employee.entity.Employee;
 import org.httt2.hrms.exception.EmailAlreadyExistsException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -75,5 +78,25 @@ public class AuthenticationService {
 
     var jwtToken = jwtService.generateToken(user);
     return new AuthResponse(jwtToken);
+  }
+
+  public UserInfoResponse getCurrentUserInfo() {
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication == null || !authentication.isAuthenticated()) {
+      throw new UsernameNotFoundException("No authenticated user found");
+    }
+
+    var email = authentication.getName();
+    var user = userRepository.findByEmail(email)
+        .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+    var employee = user.getEmployee();
+    return new UserInfoResponse(
+        user.getId(),
+        user.getEmail(),
+        List.of(user.getRole().name()),
+        employee != null ? employee.getEmpId() : null,
+        employee != null ? employee.getFullName() : null
+    );
   }
 }
