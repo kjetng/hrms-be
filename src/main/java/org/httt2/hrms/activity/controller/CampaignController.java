@@ -110,4 +110,38 @@ public class CampaignController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    @PostMapping("/{id}/publish")
+    public ResponseEntity<Campaign> publishCampaign(@PathVariable Long id) {
+        // Gọi service để đổi status -> "active"
+        Campaign publishedCampaign = campaignService.publishCampaign(id);
+        return ResponseEntity.ok(publishedCampaign);
+    }
+
+    @PostMapping("/{id}/register")
+    public ResponseEntity<?> registerCampaign(
+            @PathVariable Long id,
+            Principal principal // Spring Security tự động inject user từ Token
+    ) {
+        // 1. Kiểm tra đăng nhập
+        if (principal == null) {
+            return ResponseEntity.status(401).body("Unauthorized. Please login first.");
+        }
+
+        try {
+            // 2. Lấy email từ token (principal.getName() trả về email do cấu hình UserDetails)
+            String userEmail = principal.getName();
+            
+            // 3. Gọi service xử lý
+            campaignService.registerForCampaign(id, userEmail);
+            
+            return ResponseEntity.ok("Successfully registered for the campaign!");
+        } catch (RuntimeException e) {
+            // Trả về lỗi 400 Bad Request nếu vi phạm logic (VD: Campaign đóng, đã đăng ký rồi...)
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            // Lỗi hệ thống khác
+            return ResponseEntity.internalServerError().body("An error occurred: " + e.getMessage());
+        }
+    }
 }

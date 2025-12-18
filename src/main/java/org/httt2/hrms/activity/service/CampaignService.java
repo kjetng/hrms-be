@@ -7,8 +7,18 @@ import org.httt2.hrms.activity.repository.CampaignRepository;
 import org.springframework.stereotype.Service;
 import org.httt2.hrms.activity.dto.CampaignCreateRequest;
 
+import org.httt2.hrms.auth.entity.User;
+import org.httt2.hrms.auth.repository.UserRepository;
+import org.httt2.hrms.employee.entity.Employee;
+
+import org.httt2.hrms.activity.entity.CampaignParticipant;
+import org.httt2.hrms.activity.entity.id.CampaignParticipantId;
+import org.httt2.hrms.activity.repository.CampaignParticipantRepository;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 @Slf4j
 @Service
@@ -16,6 +26,8 @@ import java.util.Optional;
 public class CampaignService {
 
     private final CampaignRepository campaignRepository;
+    private final CampaignParticipantRepository participantRepository;
+    private final UserRepository userRepository;
 
     public List<Campaign> getAllCampaigns() {
         log.info("Fetching all campaigns");
@@ -114,6 +126,19 @@ public class CampaignService {
         return campaignRepository.save(existingCampaign);
     }
 
+    public Campaign publishCampaign(Long id) {
+    Campaign campaign = campaignRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Campaign not found"));
+            
+    // Validate: Chỉ publish được khi đang là draft
+    if (!"draft".equalsIgnoreCase(campaign.getStatus())) {
+        throw new IllegalStateException("Only draft campaigns can be published");
+    }
+    
+    campaign.setStatus("active"); // Hoặc "published" tùy quy ước nhóm bạn
+    return campaignRepository.save(campaign);
+    }
+
     // Helper method để xác định đơn vị đo lường
     private String determinePrimaryMetric(String type) {
         if (type == null) return "Points";
@@ -125,5 +150,50 @@ public class CampaignService {
             default:
                 return "Points";
         }
+    }
+
+    @Transactional
+    public void registerForCampaign(Long campaignId, String userEmail) {
+        // 1. Tìm Campaign & Validate
+        Campaign campaign = campaignRepository.findById(campaignId)
+                .orElseThrow(() -> new RuntimeException("Campaign not found"));
+
+        // Chỉ cho phép đăng ký khi chiến dịch đang Active
+        if (!"active".equalsIgnoreCase(campaign.getStatus())) {
+            throw new RuntimeException("Cannot register. Campaign is not active.");
+        }
+
+        // 2. Tìm User dựa trên Email đăng nhập
+        User currentUser = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User account not found"));
+
+        // 3. Lấy thông tin Employee từ User
+        // Trong User entity bạn đưa: @OneToOne ... private Employee employee;
+        Employee employee = currentUser.getEmployee();
+
+        // Validate: User này có phải là nhân viên chính thức không?
+        // (Trường hợp tạo User admin nhưng chưa link vào hồ sơ nhân viên)
+        if (employee == null) {
+            throw new RuntimeException("This account is not linked to an employee profile. Please contact HR.");
+        }
+
+        Long empId = employee.getEmpId();
+
+        // 4. Kiểm tra đã đăng ký chưa (tránh trùng lặp)
+        if (participantRepository.existsByIdEmpIdAndIdCampaignId(empId, campaignId)) {
+            throw new RuntimeException("You have already registered for this campaign.");
+        }
+
+        // 5. Tạo và Lưu thông tin tham gia
+        CampaignParticipantId id = new CampaignParticipantId(empId, campaignId);
+
+        CampaignParticipant participant = CampaignParticipant.builder()
+                .id(id)
+                .employee(employee) // Set object Employee
+                .campaign(campaign) // Set object Campaign
+                .joinedAt(LocalDateTime.now())
+                .build();
+
+        participantRepository.save(participant);
     }
 }
