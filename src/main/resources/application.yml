@@ -23,6 +23,22 @@ spring:
         static: ${AWS_REGION}
       s3:
         bucket: ${AWS_BUCKET_NAME}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 server:
   port: 8080
   #servlet:
@@ -46,3 +62,14 @@ application:
       expiration: ${JWT_EXPIRATION:86400000} # 1 day
   storage:
     type: s3
+  onboarding:
+    base-url: ${ONBOARDING_BASE_URL:http://localhost:5173}
+    token-expiration: ${ONBOARDING_TOKEN_EXPIRATION:604800000} # 7 days in milliseconds
+
+rabbitmq:
+  queue:
+    send-email: sendEmail
+  exchange:
+    name: ${RABBITMQ_EXCHANGE:hrms.exchange}
+  routing-key:
+    send-email: ${RABBITMQ_ROUTING_KEY_SEND_EMAIL:send.email}

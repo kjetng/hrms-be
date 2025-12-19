@@ -8,9 +8,9 @@ import org.httt2.hrms.auth.controller.dto.RegisterRequest;
 import org.httt2.hrms.auth.controller.dto.UserInfoResponse;
 import org.httt2.hrms.auth.entity.Role;
 import org.httt2.hrms.auth.entity.User;
-import org.httt2.hrms.employee.repository.EmployeeRepository;
 import org.httt2.hrms.auth.repository.UserRepository;
-import org.httt2.hrms.employee.entity.Employee;
+import org.httt2.hrms.common.external.employee.EmployeeRepository;
+import org.httt2.hrms.common.external.employee.dto.EmployeeResponse;
 import org.httt2.hrms.exception.EmailAlreadyExistsException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,10 +27,10 @@ import java.util.Optional;
 public class AuthenticationService {
 
   private final UserRepository userRepository;
-  private final EmployeeRepository employeeRepository;
   private final PasswordEncoder passwordEncoder;
   private final JwtService jwtService;
   private final AuthenticationManager authenticationManager;
+  private final EmployeeRepository employeeRepository;
 
   /**
    * REGISTER:
@@ -44,15 +44,16 @@ public class AuthenticationService {
       throw new EmailAlreadyExistsException(request.email());
     }
 
-    // Try to find an employee with this email
-    Optional<Employee> existingEmployee = employeeRepository.findByEmail(request.email());
+    // Try to find an user with this email
+    Optional<EmployeeResponse> employeeResponse = Optional.ofNullable(
+        employeeRepository.getOneByEmail(request.email())
+    );
 
     var user = User.builder()
         .email(request.email())
         .password(passwordEncoder.encode(request.password()))
         .role(Optional.ofNullable(request.role()).orElse(Role.USER))
-        // If existingEmployee is present, link it. Otherwise null.
-        .employee(existingEmployee.orElse(null))
+        .empId(employeeResponse.map(EmployeeResponse::id).orElse(null))
         .build();
 
     userRepository.save(user);
@@ -90,13 +91,11 @@ public class AuthenticationService {
     var user = userRepository.findByEmail(email)
         .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-    var employee = user.getEmployee();
     return new UserInfoResponse(
         user.getId(),
         user.getEmail(),
         List.of(user.getRole().name()),
-        employee != null ? employee.getEmpId() : null,
-        employee != null ? employee.getFullName() : null
+        user.getEmpId()
     );
   }
 }

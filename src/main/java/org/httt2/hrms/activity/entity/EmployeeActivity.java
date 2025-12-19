@@ -2,7 +2,6 @@ package org.httt2.hrms.activity.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.httt2.hrms.employee.entity.Employee;
 import java.time.LocalDate;
 
 @Entity
@@ -22,10 +21,7 @@ public class EmployeeActivity {
   private String proofImage;
   private String status;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "emp_id", nullable = false)
-  @ToString.Exclude
-  private Employee employee;
+  private Long empId;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "campaign_id", nullable = false)
