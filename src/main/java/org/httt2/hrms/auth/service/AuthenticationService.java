@@ -10,7 +10,6 @@ import org.httt2.hrms.auth.entity.Role;
 import org.httt2.hrms.auth.entity.User;
 import org.httt2.hrms.auth.repository.UserRepository;
 import org.httt2.hrms.common.external.employee.EmployeeRepository;
-import org.httt2.hrms.common.external.employee.dto.EmployeeResponse;
 import org.httt2.hrms.exception.EmailAlreadyExistsException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -44,16 +43,16 @@ public class AuthenticationService {
       throw new EmailAlreadyExistsException(request.email());
     }
 
-    // Try to find an user with this email
-    Optional<EmployeeResponse> employeeResponse = Optional.ofNullable(
-        employeeRepository.getOneByEmail(request.email())
-    );
+//    // Try to find an user with this email
+//    Optional<EmployeeResponse> employeeResponse = Optional.ofNullable(
+//        employeeRepository.getOneByEmail(request.email())
+//    );
 
     var user = User.builder()
         .email(request.email())
         .password(passwordEncoder.encode(request.password()))
         .role(Optional.ofNullable(request.role()).orElse(Role.USER))
-        .empId(employeeResponse.map(EmployeeResponse::id).orElse(null))
+//        .empId(employeeResponse.map(EmployeeResponse::id).orElse(null))
         .build();
 
     userRepository.save(user);
