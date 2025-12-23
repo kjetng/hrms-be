@@ -3,7 +3,6 @@ package org.httt2.hrms.bonus.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDate;
 
 @Entity
 @Table(name = "bonus_credit_setting")

@@ -17,13 +17,5 @@ public class BonusCreditSettingMapper {
         return dto;
     }
 
-    public BonusCreditSetting toEntity(BonusCreditSettingDto dto) {
-        if (dto == null) return null;
 
-        BonusCreditSetting entity = new BonusCreditSetting();
-        entity.setCreditDate(dto.getDate());
-        entity.setBaseBonusCredits(dto.getBaseBonusCredits());
-        entity.setConversionRate(dto.getConversionRate());
-        return entity;
-    }
 }
