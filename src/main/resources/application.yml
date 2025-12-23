@@ -47,3 +47,4 @@ aws:
   region: ${AWS_REGION}
   s3:
     bucket: ${AWS_BUCKET_NAME}
+

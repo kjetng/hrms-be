@@ -16,6 +16,8 @@ import org.httt2.hrms.activity.entity.id.CampaignParticipantId;
 import org.httt2.hrms.activity.repository.CampaignParticipantRepository;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.httt2.hrms.auth.repository.UserRepository;
+
 import java.util.List;
 import java.util.Optional;
 import java.time.LocalDateTime;
@@ -195,5 +197,22 @@ public class CampaignService {
                 .build();
 
         participantRepository.save(participant);
+    }
+
+    //  EMPLOYEE: Lấy danh sách Campaign mà nhân viên ĐÃ đăng ký
+    public List<Campaign> getMyCampaigns(String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        Employee employee = user.getEmployee();
+        if (employee == null) return List.of(); // Nếu chưa là nhân viên thì trả về rỗng
+
+        // Lấy danh sách tham gia từ bảng trung gian
+        List<CampaignParticipant> participants = participantRepository.findByEmployee_EmpId(employee.getEmpId());
+
+        // Lấy ra list Campaign từ list Participants
+        return participants.stream()
+                .map(CampaignParticipant::getCampaign)
+                .toList();
     }
 }

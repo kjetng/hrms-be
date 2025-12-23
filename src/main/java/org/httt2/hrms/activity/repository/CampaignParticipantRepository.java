@@ -4,6 +4,7 @@ import org.httt2.hrms.activity.entity.CampaignParticipant;
 import org.httt2.hrms.activity.entity.id.CampaignParticipantId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.util.List;
 
 @Repository
 public interface CampaignParticipantRepository extends JpaRepository<CampaignParticipant, CampaignParticipantId> {
@@ -14,4 +15,6 @@ public interface CampaignParticipantRepository extends JpaRepository<CampaignPar
     
     // Đếm số lượng người tham gia
     long countByIdCampaignId(Long campaignId);
+
+    List<CampaignParticipant> findByEmployee_EmpId(Long empId);
 }

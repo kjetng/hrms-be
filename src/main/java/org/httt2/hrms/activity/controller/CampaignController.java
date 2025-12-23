@@ -62,7 +62,8 @@ public class CampaignController {
             return ResponseEntity.internalServerError().build();
         }
     }
-
+    
+    // EMPLOYEE:Lấy danh sách campaign đang mở (Cho phần "You Can Join")
     @GetMapping("/active")
     public ResponseEntity<List<Campaign>> getActiveCampaigns() {
         try {
@@ -144,5 +145,13 @@ public class CampaignController {
             // Lỗi hệ thống khác
             return ResponseEntity.internalServerError().body("An error occurred: " + e.getMessage());
         }
+    }
+
+    // EMPLOYEE: Lấy danh sách campaign của tôi (Cho phần "My Active Campaigns")
+    @GetMapping("/my-campaigns")
+    public ResponseEntity<List<Campaign>> getMyCampaigns(Principal principal) {
+        if (principal == null) return ResponseEntity.status(401).build();
+        
+        return ResponseEntity.ok(campaignService.getMyCampaigns(principal.getName()));
     }
 }
