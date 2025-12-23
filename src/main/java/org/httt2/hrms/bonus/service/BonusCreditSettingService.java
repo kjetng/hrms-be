@@ -1,7 +1,7 @@
 package org.httt2.hrms.bonus.service;
 
 import lombok.RequiredArgsConstructor;
-import org.httt2.hrms.bonus.dto.BonusCreditSettingRequest;
+import org.httt2.hrms.bonus.dto.BonusCreditSettingDto;
 import org.httt2.hrms.bonus.entity.BonusCreditSetting;
 import org.httt2.hrms.bonus.repository.BonusCreditSettingRepository;
 import org.springframework.stereotype.Service;
@@ -19,17 +19,15 @@ public class BonusCreditSettingService {
      * Used when page loads
      */
     public BonusCreditSetting getCurrentSetting() {
-        return repository.findAll()
-                .stream()
-                .findFirst()
-                .orElse(null);
+        return repository.findTopByOrderByIdAsc().orElse(null);
+
     }
 
     /**
      * Create or update bonus credit setting
      * Used when clicking "Save Changes"
      */
-    public BonusCreditSetting saveOrUpdate(BonusCreditSettingRequest request) {
+    public BonusCreditSetting saveOrUpdate(BonusCreditSettingDto request) {
 
         BonusCreditSetting setting = getCurrentSetting();
 

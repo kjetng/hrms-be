@@ -2,9 +2,10 @@ package org.httt2.hrms.bonus.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.httt2.hrms.bonus.dto.BonusCreditSettingRequest;
+import org.httt2.hrms.bonus.dto.BonusCreditSettingDto;
 import org.httt2.hrms.bonus.entity.BonusCreditSetting;
 import org.httt2.hrms.bonus.service.BonusCreditSettingService;
+import org.httt2.hrms.bonus.mapper.BonusCreditSettingMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,23 +16,23 @@ import org.springframework.web.bind.annotation.*;
 public class BonusCreditSettingController {
 
     private final BonusCreditSettingService service;
-
+    private final BonusCreditSettingMapper mapper;
     /**
      * Used when page loads
      */
     @GetMapping
-    public ResponseEntity<BonusCreditSetting> getSetting() {
-        System.out.println("PING HIT");
-        return ResponseEntity.ok(service.getCurrentSetting());
+    public ResponseEntity<BonusCreditSettingDto> getSetting() {
+        BonusCreditSetting entity = service.getCurrentSetting();
+        return ResponseEntity.ok(mapper.toDto(entity));
     }
 
     /**
      * Used when clicking "Save Changes"
      */
     @PostMapping
-    public ResponseEntity<BonusCreditSetting> saveSetting(
-            @Valid @RequestBody BonusCreditSettingRequest request) {
-        System.out.println("HIT CONTROLLER");
-        return ResponseEntity.ok(service.saveOrUpdate(request));
+    public ResponseEntity<BonusCreditSettingDto> saveSetting(
+            @Valid @RequestBody BonusCreditSettingDto request) {
+        BonusCreditSetting saved = service.saveOrUpdate(request);
+        return ResponseEntity.ok(mapper.toDto(saved));
     }
 }

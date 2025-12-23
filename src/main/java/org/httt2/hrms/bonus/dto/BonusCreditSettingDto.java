@@ -3,24 +3,25 @@ package org.httt2.hrms.bonus.dto;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
-import java.time.LocalDate;
-
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class BonusCreditSettingRequest {
+public class BonusCreditSettingDto {
 
     @NotNull
-    @Positive
     @Min(1)
+    @Max(999_999_999)
     private Integer baseBonusCredits;
 
     @NotNull
-    @Positive
-    private Double conversionRate;
+    @Min(1000)
+    @Max(999_999_999)
+    private Integer conversionRate;
 
     @NotNull
-    private LocalDate date;
+    @Min(1)
+    @Max(28)
+    private Integer date;
 }

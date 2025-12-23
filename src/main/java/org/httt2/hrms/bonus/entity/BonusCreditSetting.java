@@ -22,8 +22,8 @@ public class BonusCreditSetting {
     private Integer baseBonusCredits;
 
     @Column(nullable = false)
-    private Double conversionRate;
+    private Integer conversionRate;
 
     @Column(nullable = false)
-    private LocalDate creditDate;
+    private Integer creditDate;
 }
