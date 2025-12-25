@@ -4,6 +4,7 @@ import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import org.httt2.hrms.bonus.validation.annotation.MultipleOf;
 
+
 public class MultipleOfValidator
         implements ConstraintValidator<MultipleOf, Number> {
 
