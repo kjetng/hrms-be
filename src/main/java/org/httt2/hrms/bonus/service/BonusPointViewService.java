@@ -29,7 +29,7 @@ public class BonusPointViewService {
     public BonusPointViewDto getMyBonusPointView() {
 
 //        Long empId = securityUtil.getCurrentEmployeeId();
-        // FOR DEVELOPING PURPOSE
+        // FOR DEVELOPING PURPOSES
         Long empId = 1L;
 
         BonusPointAccount account = accountRepo.findById(empId)

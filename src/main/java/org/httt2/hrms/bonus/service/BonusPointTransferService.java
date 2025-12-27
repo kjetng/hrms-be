@@ -22,6 +22,7 @@ public class BonusPointTransferService {
     public void transfer(TransferRequestDto request) {
 
 //        Long senderId = securityUtil.getCurrentEmployeeId();
+        // FOR DEVELOPING PURPOSE
         Long senderId = 2L;
 
 
