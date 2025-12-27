@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Java Application
   hrms-app:
@@ -16,8 +14,8 @@ services:
       # RabbitMQ Configuration (use rabbitmq_broker if in same network, or host.docker.internal)
       RABBITMQ_HOST: rabbitmq_broker
       RABBITMQ_PORT: 5672
-      RABBITMQ_USERNAME: hrms
-      RABBITMQ_PASSWORD: hrms123
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
       RABBITMQ_EXCHANGE: hrms.exchange
       RABBITMQ_ROUTING_KEY_SEND_EMAIL: send.email
       
