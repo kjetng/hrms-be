@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/bonus-settings")
+@RequestMapping("/api/credits/settings")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*") // adjust for frontend domain
 public class BonusCreditSettingController {
@@ -35,4 +35,5 @@ public class BonusCreditSettingController {
         BonusCreditSetting saved = service.saveOrUpdate(request);
         return ResponseEntity.ok(mapper.toDto(saved));
     }
+
 }
