@@ -13,8 +13,10 @@ public class BonusPointViewDto {
     private Integer totalRedeemed;
     private Integer totalSent;
     private Integer totalReceived;
+//
+//    private List<RedemptionTransactionDto> redemptions;
+//    private List<TransferTransactionDto> sentTransfers;
+//    private List<TransferTransactionDto> receivedTransfers;
+    private List<HistoryItemDto> history;
 
-    private List<RedemptionTransactionDto> redemptions;
-    private List<TransferTransactionDto> sentTransfers;
-    private List<TransferTransactionDto> receivedTransfers;
 }
