@@ -29,7 +29,6 @@ public class AuthenticationService {
   private final PasswordEncoder passwordEncoder;
   private final JwtService jwtService;
   private final AuthenticationManager authenticationManager;
-  private final EmployeeRepository employeeRepository;
 
   /**
    * REGISTER:
@@ -43,16 +42,11 @@ public class AuthenticationService {
       throw new EmailAlreadyExistsException(request.email());
     }
 
-//    // Try to find an user with this email
-//    Optional<EmployeeResponse> employeeResponse = Optional.ofNullable(
-//        employeeRepository.getOneByEmail(request.email())
-//    );
-
     var user = User.builder()
         .email(request.email())
         .password(passwordEncoder.encode(request.password()))
         .role(Optional.ofNullable(request.role()).orElse(Role.USER))
-//        .empId(employeeResponse.map(EmployeeResponse::id).orElse(null))
+        .empId(request.empId())
         .build();
 
     userRepository.save(user);
@@ -69,9 +63,7 @@ public class AuthenticationService {
     authenticationManager.authenticate(
         new UsernamePasswordAuthenticationToken(
             request.email(),
-            request.password()
-        )
-    );
+            request.password()));
 
     var user = userRepository.findByEmail(request.email())
         .orElseThrow(() -> new UsernameNotFoundException("User not found after authentication"));
@@ -94,7 +86,6 @@ public class AuthenticationService {
         user.getId(),
         user.getEmail(),
         List.of(user.getRole().name()),
-        user.getEmpId()
-    );
+        user.getEmpId());
   }
 }
