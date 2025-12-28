@@ -3,9 +3,11 @@ package org.httt2.hrms.activity.controller;
 import lombok.RequiredArgsConstructor;
 import org.httt2.hrms.activity.entity.Campaign;
 import org.httt2.hrms.activity.service.CampaignService;
+import org.httt2.hrms.auth.config.JwtService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.httt2.hrms.activity.dto.CampaignCreateRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +20,7 @@ import java.security.Principal;
 public class CampaignController {
 
     private final CampaignService campaignService;
+    private final JwtService jwtService;
 
     @GetMapping
     public ResponseEntity<List<Campaign>> getAllCampaigns() {
@@ -123,35 +126,33 @@ public class CampaignController {
     @PostMapping("/{id}/register")
     public ResponseEntity<?> registerCampaign(
             @PathVariable Long id,
-            Principal principal // Spring Security tự động inject user từ Token
+            Principal principal,
+            HttpServletRequest request
     ) {
-        // 1. Kiểm tra đăng nhập
         if (principal == null) {
             return ResponseEntity.status(401).body("Unauthorized. Please login first.");
         }
 
         try {
-            // 2. Lấy email từ token (principal.getName() trả về email do cấu hình UserDetails)
             String userEmail = principal.getName();
+            Long empId = jwtService.extractEmpIdFromRequest(request);
             
-            // 3. Gọi service xử lý
-            campaignService.registerForCampaign(id, userEmail);
-            
+            campaignService.registerForCampaign(id, userEmail, empId);
             return ResponseEntity.ok("Successfully registered for the campaign!");
         } catch (RuntimeException e) {
-            // Trả về lỗi 400 Bad Request nếu vi phạm logic (VD: Campaign đóng, đã đăng ký rồi...)
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            // Lỗi hệ thống khác
             return ResponseEntity.internalServerError().body("An error occurred: " + e.getMessage());
         }
     }
 
     // EMPLOYEE: Lấy danh sách campaign của tôi (Cho phần "My Active Campaigns")
     @GetMapping("/my-campaigns")
-    public ResponseEntity<List<Campaign>> getMyCampaigns(Principal principal) {
+    public ResponseEntity<List<Campaign>> getMyCampaigns(Principal principal, HttpServletRequest request) {
         if (principal == null) return ResponseEntity.status(401).build();
+
+        Long empId = jwtService.extractEmpIdFromRequest(request);
         
-        return ResponseEntity.ok(campaignService.getMyCampaigns(principal.getName()));
+        return ResponseEntity.ok(campaignService.getMyCampaigns(principal.getName(), empId));
     }
 }
