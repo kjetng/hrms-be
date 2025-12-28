@@ -14,3 +14,19 @@ services:
       - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
       - ./definitions.json:/etc/rabbitmq/definitions.json
     restart: unless-stopped
+  
+  postgres:
+    image: postgres:15.15-alpine3.23
+    container_name: postgres_container
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hrms
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
