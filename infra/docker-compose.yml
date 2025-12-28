@@ -3,8 +3,8 @@ services:
     image: rabbitmq:3-management
     container_name: rabbitmq_broker
     ports:
-      - "5672:5672"    # AMQP port for client connections
-      - "15672:15672"  # Management UI[](http://localhost:15672)
+      - "5672:5672" # AMQP port for client connections
+      - "15672:15672" # Management UI[](http://localhost:15672)
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
@@ -14,7 +14,7 @@ services:
       - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
       - ./definitions.json:/etc/rabbitmq/definitions.json
     restart: unless-stopped
-  
+
   postgres:
     image: postgres:15.15-alpine3.23
     container_name: postgres_container
@@ -30,3 +30,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+volumes:
+  postgres_data:
