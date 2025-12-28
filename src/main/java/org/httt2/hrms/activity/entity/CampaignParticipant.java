@@ -12,10 +12,14 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@IdClass(CampaignParticipantId.class)
 public class CampaignParticipant {
 
-  @EmbeddedId
-  private CampaignParticipantId id;
+  @Id
+  private Long empId;
+
+  @Id
+  private Long campaignId;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @MapsId("campaignId") // Maps to the key class

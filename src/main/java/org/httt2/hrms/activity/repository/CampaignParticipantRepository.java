@@ -11,10 +11,10 @@ public interface CampaignParticipantRepository extends JpaRepository<CampaignPar
     
     // Kiểm tra xem nhân viên (theo empId) đã tham gia chiến dịch này chưa
     // Spring Data JPA sẽ tự parse: Id -> EmpId và Id -> CampaignId
-    boolean existsByIdEmpIdAndIdCampaignId(Long empId, Long campaignId);
+    boolean existsByEmpIdAndCampaignId(Long empId, Long campaignId);
     
     // Đếm số lượng người tham gia
-    long countByIdCampaignId(Long campaignId);
+    long countByCampaignId(Long campaignId);
 
-    List<CampaignParticipant> findByEmployee_EmpId(Long empId);
+    List<CampaignParticipant> findByEmpId(Long empId);
 }

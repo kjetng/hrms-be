@@ -7,15 +7,12 @@ import org.httt2.hrms.activity.repository.CampaignRepository;
 import org.springframework.stereotype.Service;
 import org.httt2.hrms.activity.dto.CampaignCreateRequest;
 
-import org.httt2.hrms.auth.entity.User;
 import org.httt2.hrms.auth.repository.UserRepository;
 
 import org.httt2.hrms.activity.entity.CampaignParticipant;
 import org.httt2.hrms.activity.entity.id.CampaignParticipantId;
 import org.httt2.hrms.activity.repository.CampaignParticipantRepository;
 import org.springframework.transaction.annotation.Transactional;
-
-import org.httt2.hrms.auth.repository.UserRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -165,7 +162,7 @@ public class CampaignService {
         }
 
         // 2. Tìm User dựa trên Email đăng nhập
-        User currentUser = userRepository.findByEmail(userEmail)
+        userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User account not found"));
 
         // Validate: User này có phải là nhân viên chính thức không?
@@ -175,15 +172,14 @@ public class CampaignService {
         }
 
         // 4. Kiểm tra đã đăng ký chưa (tránh trùng lặp)
-        if (participantRepository.existsByIdEmpIdAndIdCampaignId(empId, campaignId)) {
+        if (participantRepository.existsByEmpIdAndCampaignId(empId, campaignId)) {
             throw new RuntimeException("You have already registered for this campaign.");
         }
 
         // 5. Tạo và Lưu thông tin tham gia
-        CampaignParticipantId id = new CampaignParticipantId(empId, campaignId);
-
         CampaignParticipant participant = CampaignParticipant.builder()
-                .id(id)
+                .empId(empId)
+                .campaignId(campaignId)
                 .campaign(campaign) // Set object Campaign
                 .joinedAt(LocalDateTime.now())
                 .build();
@@ -193,12 +189,12 @@ public class CampaignService {
 
     //  EMPLOYEE: Lấy danh sách Campaign mà nhân viên ĐÃ đăng ký
     public List<Campaign> getMyCampaigns(String userEmail, Long empId) {
-        User user = userRepository.findByEmail(userEmail)
+        userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (empId == null) return List.of(); // Nếu chưa là nhân viên thì trả về rỗng
         // Lấy danh sách tham gia từ bảng trung gian
-        List<CampaignParticipant> participants = participantRepository.findByEmployee_EmpId(empId);
+        List<CampaignParticipant> participants = participantRepository.findByEmpId(empId);
 
         // Lấy ra list Campaign từ list Participants
         return participants.stream()
