@@ -22,8 +22,7 @@ services:
     container_name: postgres_container
     environment:
       POSTGRES_DB: hrms
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: dinh100110
+      POSTGRES_PASSWORD: postgres
       POSTGRES_ROOT_PASSWORD: root_password
     ports:
       - "5432:5432"

@@ -12,7 +12,7 @@ services:
       # Database Configuration (use host.docker.internal for localhost services)
       DB_URL: jdbc:postgresql://postgres:5432/hrms
       DB_USERNAME: postgres
-      DB_PASSWORD: dinh100110
+      DB_PASSWORD: postgres
       
       # RabbitMQ Configuration (use rabbitmq_broker if in same network, or host.docker.internal)
       RABBITMQ_HOST: rabbitmq_broker
@@ -45,6 +45,4 @@ services:
       - "8080:8080"
     networks:
       - hrms-network
-    external_links:
-      - rabbitmq_broker
     restart: unless-stopped
