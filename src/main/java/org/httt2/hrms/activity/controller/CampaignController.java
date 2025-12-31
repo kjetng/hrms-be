@@ -2,10 +2,12 @@ package org.httt2.hrms.activity.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.httt2.hrms.activity.entity.Campaign;
+import org.httt2.hrms.activity.entity.EmployeeActivity;
 import org.httt2.hrms.activity.service.CampaignService;
 import org.httt2.hrms.auth.config.JwtService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.httt2.hrms.activity.dto.ActivitySubmissionRequest;
 import org.httt2.hrms.activity.dto.CampaignCreateRequest;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -155,4 +157,45 @@ public class CampaignController {
         
         return ResponseEntity.ok(campaignService.getMyCampaigns(principal.getName(), empId));
     }
+
+    
+    // SUBMIT ACTIVITY
+    @PostMapping("/{id}/activities")
+    public ResponseEntity<?> submitActivity(
+            @PathVariable Long id,
+            @RequestBody ActivitySubmissionRequest request,
+            HttpServletRequest httpServletRequest
+    ) {
+        try {
+            Long empId = jwtService.extractEmpIdFromRequest(httpServletRequest);
+            if (empId == null) return ResponseEntity.status(401).body("Employee ID not found in token");
+
+            EmployeeActivity activity = campaignService.submitActivity(id, empId, request);
+            return ResponseEntity.ok(activity);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+        }
+    }
+
+
+    // VIEW SUBMISSIONS (HISTORY)
+    @GetMapping("/{id}/activities/me")
+    public ResponseEntity<?> getMyActivities(
+            @PathVariable Long id,
+            HttpServletRequest httpServletRequest
+    ) {
+        try {
+            Long empId = jwtService.extractEmpIdFromRequest(httpServletRequest);
+            if (empId == null) return ResponseEntity.status(401).body("Employee ID not found in token");
+
+            List<EmployeeActivity> activities = campaignService.getMyCampaignActivities(id, empId);
+            return ResponseEntity.ok(activities);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+        }
+    }
 }
+
+

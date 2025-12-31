@@ -10,9 +10,12 @@ import org.httt2.hrms.activity.dto.CampaignCreateRequest;
 import org.httt2.hrms.auth.repository.UserRepository;
 
 import org.httt2.hrms.activity.entity.CampaignParticipant;
-import org.httt2.hrms.activity.entity.id.CampaignParticipantId;
 import org.httt2.hrms.activity.repository.CampaignParticipantRepository;
 import org.springframework.transaction.annotation.Transactional;
+
+import org.httt2.hrms.activity.entity.EmployeeActivity;
+import org.httt2.hrms.activity.repository.EmployeeActivityRepository;
+import org.httt2.hrms.activity.dto.ActivitySubmissionRequest;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +29,8 @@ public class CampaignService {
     private final CampaignRepository campaignRepository;
     private final CampaignParticipantRepository participantRepository;
     private final UserRepository userRepository;
+
+    private final EmployeeActivityRepository activityRepository;
 
     public List<Campaign> getAllCampaigns() {
         log.info("Fetching all campaigns");
@@ -201,4 +206,42 @@ public class CampaignService {
                 .map(CampaignParticipant::getCampaign)
                 .toList();
     }
+
+    @Transactional
+    public EmployeeActivity submitActivity(Long campaignId, Long empId, ActivitySubmissionRequest request) {
+        // a. Tìm Campaign
+        Campaign campaign = campaignRepository.findById(campaignId)
+                .orElseThrow(() -> new RuntimeException("Campaign not found"));
+
+        // b. Validate: Ngày hoạt động phải nằm trong thời gian diễn ra Campaign
+        if (request.getActivityDate().isBefore(campaign.getStartDate()) || 
+            request.getActivityDate().isAfter(campaign.getEndDate())) {
+            throw new IllegalArgumentException("Activity date must be within campaign duration (" 
+                + campaign.getStartDate() + " to " + campaign.getEndDate() + ")");
+        }
+
+        // c. Validate: Employee đã join campaign chưa? (Optional)
+        if (!participantRepository.existsByEmpIdAndCampaignId(empId, campaignId)) {
+            throw new RuntimeException("You must join the campaign before submitting activities.");
+        }
+
+        // d. Tạo Entity và Lưu
+        EmployeeActivity activity = EmployeeActivity.builder()
+                .empId(empId)
+                .campaign(campaign)
+                .activityDate(request.getActivityDate())
+                .metrics(request.getMetrics())
+                .proofImage(request.getProofImage())
+                .status("pending") // Luôn là pending khi mới submit
+                .build();
+
+        return activityRepository.save(activity);
+    }
+
+    // 2. Get My Submissions History Logic
+    public List<EmployeeActivity> getMyCampaignActivities(Long campaignId, Long empId) {
+        return activityRepository.findByCampaign_CampaignIdAndEmpIdOrderByCreatedAtDesc(campaignId, empId);
+    }
 }
+
+
