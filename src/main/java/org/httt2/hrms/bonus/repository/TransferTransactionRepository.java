@@ -10,4 +10,8 @@ public interface TransferTransactionRepository
 
     List<TransferTransaction> findBySender_EmpId(Long empId);
     List<TransferTransaction> findByReceiver_EmpId(Long empId);
+    List<TransferTransaction> findBySender_EmpIdOrReceiver_EmpId(
+            Long senderEmpId,
+            Long receiverEmpId
+    );
 }
