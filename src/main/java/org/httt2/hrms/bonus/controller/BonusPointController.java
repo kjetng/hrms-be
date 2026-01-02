@@ -7,6 +7,7 @@ import org.httt2.hrms.bonus.dto.RedemptionResultDto;
 import org.httt2.hrms.bonus.dto.TransferRequestDto;
 import org.httt2.hrms.bonus.service.BonusPointRedemptionService;
 import org.httt2.hrms.bonus.service.BonusPointTransferService;
+import org.httt2.hrms.bonus.dto.BonusPointViewQueryDto;
 import org.httt2.hrms.bonus.service.BonusPointViewService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,13 +19,18 @@ import org.springframework.web.bind.annotation.*;
 public class BonusPointController {
 
     private final BonusPointViewService viewService;
-    private final BonusPointTransferService transferService;
-    private final BonusPointRedemptionService redemptionService;
-
-    @GetMapping("/view")
-    public ResponseEntity<BonusPointViewDto> viewMyCredits() {
-        return ResponseEntity.ok(viewService.getMyBonusPointView());
+//    private final BonusPointTransferService transferService;
+//    private final BonusPointRedemptionService redemptionService;
+    @PostMapping("/view")
+    public BonusPointViewDto getBonusPointView(
+            @RequestBody BonusPointViewQueryDto query
+    ) {
+        return viewService.getMyBonusPointView(query);
     }
+//    @GetMapping("/view")
+//    public ResponseEntity<BonusPointViewDto> viewMyCredits() {
+//        return ResponseEntity.ok(viewService.getMyBonusPointView());
+//    }
 //
 //    @PostMapping("/transfer")
 //    public ResponseEntity<Void> transferPoints(

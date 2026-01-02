@@ -5,6 +5,7 @@ public enum HistoryType {
     TRANSFER_SENT,
     TRANSFER_RECEIVED,
     DEDUCT,
-    AWARD
+    AWARD,
+    MONTHLY
 }
 

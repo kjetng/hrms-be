@@ -2,6 +2,7 @@ package org.httt2.hrms.bonus.dto;
 
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Data
@@ -13,10 +14,11 @@ public class BonusPointViewDto {
     private Integer totalRedeemed;
     private Integer totalSent;
     private Integer totalReceived;
-//
-//    private List<RedemptionTransactionDto> redemptions;
-//    private List<TransferTransactionDto> sentTransfers;
-//    private List<TransferTransactionDto> receivedTransfers;
+    private long totalRecords;
+
+    private LocalDate dateFrom;
+    private LocalDate dateTo;
+
     private List<HistoryItemDto> history;
 
 }

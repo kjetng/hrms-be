@@ -10,7 +10,7 @@ public class HistoryItemDto {
 
     private Long id;
 
-    private HistoryType type;     // REDEMPTION, TRANSFER_SENT, TRANSFER_RECEIVED
+    private HistoryType type;     // REDEEM, TRANSFER_SENT, TRANSFER_RECEIVED, DEDUCT, AWARD, MONTHLY
 
     private Integer points;       // signed (+ / -)
 

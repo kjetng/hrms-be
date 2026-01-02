@@ -46,6 +46,7 @@ public class BonusPointTransferService {
                         .receiver(receiver)
                         .numberPoint(request.getPoints())
                         .note(request.getNote())
+                        .type(request.getType())
                         .build()
         );
     }
