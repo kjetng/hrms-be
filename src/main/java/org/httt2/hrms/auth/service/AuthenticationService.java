@@ -9,7 +9,6 @@ import org.httt2.hrms.auth.controller.dto.UserInfoResponse;
 import org.httt2.hrms.auth.entity.Role;
 import org.httt2.hrms.auth.entity.User;
 import org.httt2.hrms.auth.repository.UserRepository;
-import org.httt2.hrms.common.external.employee.EmployeeRepository;
 import org.httt2.hrms.exception.EmailAlreadyExistsException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
