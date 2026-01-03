@@ -18,7 +18,6 @@ public class BonusPointViewQueryDto {
         private LocalDate from;
         private LocalDate to;
     }
-
     
     @Data
     public static class Sort {
