@@ -37,7 +37,7 @@ public class CampaignController {
         try {
             Optional<Campaign> campaign = campaignService.getCampaignById(campaignId);
             return campaign.map(ResponseEntity::ok)
-                          .orElse(ResponseEntity.notFound().build());
+                    .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
@@ -65,7 +65,7 @@ public class CampaignController {
             return ResponseEntity.internalServerError().build();
         }
     }
-    
+
     // EMPLOYEE:Lấy danh sách campaign đang mở (Cho phần "You Can Join")
     @GetMapping("/active")
     public ResponseEntity<List<Campaign>> getActiveCampaigns() {
@@ -127,8 +127,7 @@ public class CampaignController {
     public ResponseEntity<?> registerCampaign(
             @PathVariable Long id,
             Principal principal,
-            HttpServletRequest request
-    ) {
+            HttpServletRequest request) {
         if (principal == null) {
             return ResponseEntity.status(401).body("Unauthorized. Please login first.");
         }
@@ -136,7 +135,7 @@ public class CampaignController {
         try {
             String userEmail = principal.getName();
             Long empId = jwtService.extractEmpIdFromRequest(request);
-            
+
             campaignService.registerForCampaign(id, userEmail, empId);
             return ResponseEntity.ok("Successfully registered for the campaign!");
         } catch (RuntimeException e) {
@@ -149,10 +148,11 @@ public class CampaignController {
     // EMPLOYEE: Lấy danh sách campaign của tôi (Cho phần "My Active Campaigns")
     @GetMapping("/my-campaigns")
     public ResponseEntity<List<Campaign>> getMyCampaigns(Principal principal, HttpServletRequest request) {
-        if (principal == null) return ResponseEntity.status(401).build();
+        if (principal == null)
+            return ResponseEntity.status(401).build();
 
         Long empId = jwtService.extractEmpIdFromRequest(request);
-        
+
         return ResponseEntity.ok(campaignService.getMyCampaigns(principal.getName(), empId));
     }
 }

@@ -78,9 +78,9 @@ public class CampaignService {
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
                 .imageUrl(request.getImageUrl())
-                // Status sẽ được @PrePersist trong Entity xử lý thành 'draft', 
+                // Status sẽ được @PrePersist trong Entity xử lý thành 'draft',
                 // hoặc bạn có thể set logic 'active' nếu startDate là hôm nay tại đây.
-                .status("draft") 
+                .status("draft")
                 .build();
 
         return campaignRepository.save(campaign);
@@ -118,28 +118,30 @@ public class CampaignService {
         existingCampaign.setPrimaryMetric(determinePrimaryMetric(request.getCampaignType()));
 
         // 6. Cập nhật Status dựa trên ngày tháng mới (Optional - Logic thông minh)
-        // Ví dụ: Nếu sửa ngày bắt đầu thành tương lai -> status về 'draft' hoặc 'upcoming'
+        // Ví dụ: Nếu sửa ngày bắt đầu thành tương lai -> status về 'draft' hoặc
+        // 'upcoming'
         // Ở đây mình giữ nguyên logic đơn giản là lưu lại thôi.
-        
+
         return campaignRepository.save(existingCampaign);
     }
 
     public Campaign publishCampaign(Long id) {
-    Campaign campaign = campaignRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Campaign not found"));
-            
-    // Validate: Chỉ publish được khi đang là draft
-    if (!"draft".equalsIgnoreCase(campaign.getStatus())) {
-        throw new IllegalStateException("Only draft campaigns can be published");
-    }
-    
-    campaign.setStatus("active"); // Hoặc "published" tùy quy ước nhóm bạn
-    return campaignRepository.save(campaign);
+        Campaign campaign = campaignRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Campaign not found"));
+
+        // Validate: Chỉ publish được khi đang là draft
+        if (!"draft".equalsIgnoreCase(campaign.getStatus())) {
+            throw new IllegalStateException("Only draft campaigns can be published");
+        }
+
+        campaign.setStatus("active"); // Hoặc "published" tùy quy ước nhóm bạn
+        return campaignRepository.save(campaign);
     }
 
     // Helper method để xác định đơn vị đo lường
     private String determinePrimaryMetric(String type) {
-        if (type == null) return "Points";
+        if (type == null)
+            return "Points";
         switch (type.toLowerCase()) {
             case "walking":
             case "running":
@@ -187,12 +189,13 @@ public class CampaignService {
         participantRepository.save(participant);
     }
 
-    //  EMPLOYEE: Lấy danh sách Campaign mà nhân viên ĐÃ đăng ký
+    // EMPLOYEE: Lấy danh sách Campaign mà nhân viên ĐÃ đăng ký
     public List<Campaign> getMyCampaigns(String userEmail, Long empId) {
         userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (empId == null) return List.of(); // Nếu chưa là nhân viên thì trả về rỗng
+        if (empId == null)
+            return List.of(); // Nếu chưa là nhân viên thì trả về rỗng
         // Lấy danh sách tham gia từ bảng trung gian
         List<CampaignParticipant> participants = participantRepository.findByEmpId(empId);
 
