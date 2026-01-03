@@ -5,18 +5,20 @@ import org.httt2.hrms.auth.config.JwtService;
 import org.httt2.hrms.auth.controller.dto.AuthResponse;
 import org.httt2.hrms.auth.controller.dto.LoginRequest;
 import org.httt2.hrms.auth.controller.dto.RegisterRequest;
+import org.httt2.hrms.auth.controller.dto.UserInfoResponse;
 import org.httt2.hrms.auth.entity.Role;
 import org.httt2.hrms.auth.entity.User;
-import org.httt2.hrms.employee.repository.EmployeeRepository;
 import org.httt2.hrms.auth.repository.UserRepository;
-import org.httt2.hrms.employee.entity.Employee;
+import org.httt2.hrms.common.external.employee.EmployeeRepository;
 import org.httt2.hrms.exception.EmailAlreadyExistsException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -24,7 +26,6 @@ import java.util.Optional;
 public class AuthenticationService {
 
   private final UserRepository userRepository;
-  private final EmployeeRepository employeeRepository;
   private final PasswordEncoder passwordEncoder;
   private final JwtService jwtService;
   private final AuthenticationManager authenticationManager;
@@ -41,15 +42,11 @@ public class AuthenticationService {
       throw new EmailAlreadyExistsException(request.email());
     }
 
-    // Try to find an employee with this email
-    Optional<Employee> existingEmployee = employeeRepository.findByEmail(request.email());
-
     var user = User.builder()
         .email(request.email())
         .password(passwordEncoder.encode(request.password()))
         .role(Optional.ofNullable(request.role()).orElse(Role.USER))
-        // If existingEmployee is present, link it. Otherwise null.
-        .employee(existingEmployee.orElse(null))
+        .empId(request.empId())
         .build();
 
     userRepository.save(user);
@@ -66,14 +63,29 @@ public class AuthenticationService {
     authenticationManager.authenticate(
         new UsernamePasswordAuthenticationToken(
             request.email(),
-            request.password()
-        )
-    );
+            request.password()));
 
     var user = userRepository.findByEmail(request.email())
         .orElseThrow(() -> new UsernameNotFoundException("User not found after authentication"));
 
     var jwtToken = jwtService.generateToken(user);
     return new AuthResponse(jwtToken);
+  }
+
+  public UserInfoResponse getCurrentUserInfo() {
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication == null || !authentication.isAuthenticated()) {
+      throw new UsernameNotFoundException("No authenticated user found");
+    }
+
+    var email = authentication.getName();
+    var user = userRepository.findByEmail(email)
+        .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+    return new UserInfoResponse(
+        user.getId(),
+        user.getEmail(),
+        List.of(user.getRole().name()),
+        user.getEmpId());
   }
 }

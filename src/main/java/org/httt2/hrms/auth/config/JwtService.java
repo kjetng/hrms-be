@@ -5,7 +5,6 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.httt2.hrms.auth.entity.User;
-import org.httt2.hrms.employee.entity.Employee;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -14,7 +13,6 @@ import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 
 @Service
@@ -41,9 +39,7 @@ public class JwtService {
         put("roles", user.getAuthorities().stream()
             .map(Object::toString).toList());
         put("mail", user.getUsername());
-        put("empId", Optional.ofNullable(user.getEmployee())
-            .map(Employee::getEmpId)
-            .orElse(null));
+        put("empId", user.getEmpId());
       }
     };
     return generateToken(claims, user);

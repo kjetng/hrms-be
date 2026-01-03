@@ -14,19 +14,40 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
-  flyway:
-    locations: classpath:db/migration
-    baseline-on-migrate: true
-    enabled: false # Tạm thời tắt Flyway để tránh xung đột với ddl-auto: update
+  cloud:
+    aws:
+      credentials:
+        access-key: ${AWS_ACCESS_KEY}
+        secret-key: ${AWS_SECRET_KEY}
+      region:
+        static: ${AWS_REGION}
+      s3:
+        bucket: ${AWS_BUCKET_NAME}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 server:
   port: 8080
   #servlet:
-   # context-path: /api
+  # context-path: /api
 
 # Logging
 logging:
   level:
-    org.httt2.hrms: DEBUG
+    org.httt2.hrms: TRACE
     org.hibernate.SQL: DEBUG
 
 application:
@@ -39,11 +60,16 @@ application:
       # Expiration time in milliseconds.
       # Default: 86400000 (1 day) if not provided in env.
       expiration: ${JWT_EXPIRATION:86400000} # 1 day
+  storage:
+    type: s3
+  onboarding:
+    base-url: ${ONBOARDING_BASE_URL:http://localhost:5173}
+    token-expiration: ${ONBOARDING_TOKEN_EXPIRATION:604800000} # 7 days in milliseconds
 
-# Config AWS S3
-aws:
-  accessKeyId: ${AWS_ACCESS_KEY}       # Thay bằng key thật sau này
-  secretKey: ${AWS_SECRET_KEY}   # Thay bằng key thật sau này
-  region: ${AWS_REGION}
-  s3:
-    bucket: ${AWS_BUCKET_NAME}
+rabbitmq:
+  queue:
+    send-email: sendEmail
+  exchange:
+    name: ${RABBITMQ_EXCHANGE:hrms.exchange}
+  routing-key:
+    send-email: ${RABBITMQ_ROUTING_KEY_SEND_EMAIL:send.email}
