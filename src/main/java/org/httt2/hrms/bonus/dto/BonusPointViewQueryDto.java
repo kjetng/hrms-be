@@ -19,6 +19,7 @@ public class BonusPointViewQueryDto {
         private LocalDate to;
     }
 
+    
     @Data
     public static class Sort {
         private String field;          // currently only "createdAt"
