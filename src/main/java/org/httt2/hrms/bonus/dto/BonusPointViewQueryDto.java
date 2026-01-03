@@ -11,7 +11,8 @@ public class BonusPointViewQueryDto {
     private DateRange dateRange;
     private List<HistoryType> types;
     private Sort sort;
-
+    private Integer page;  // 1-based
+    private Integer size;
     @Data
     public static class DateRange {
         private LocalDate from;

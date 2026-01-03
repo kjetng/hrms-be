@@ -45,6 +45,22 @@ public class BonusPointViewService {
         for (RedemptionTransaction r :
                 redemptionRepo.findByAccount_EmpId(empId)) {
 
+            // filter by date
+            if (query.getDateRange() != null) {
+                LocalDate from = query.getDateRange().getFrom();
+                LocalDate to = query.getDateRange().getTo();
+                LocalDate date = r.getCreatedAt().toLocalDate();
+                if ((from != null && date.isBefore(from)) || (to != null && date.isAfter(to))) {
+                    continue;
+                }
+            }
+
+            // filter by types
+            if (query.getTypes() != null && !query.getTypes().isEmpty()
+                    && !query.getTypes().contains(HistoryType.REDEEM)) {
+                continue;
+            }
+
             history.add(
                     HistoryItemDto.builder()
                             .id(r.getRedemptionId())
@@ -57,27 +73,83 @@ public class BonusPointViewService {
             );
         }
 
-        // ===== TRANSFERS / AWARD / DEDUCT ===== 
-        List<TransferTransaction> transfers =
-                transferRepo.findBySender_EmpIdOrReceiver_EmpId(empId, empId);
+        // ===== TRANSFERS / AWARD / DEDUCT / MONTHLY (paged) =====
+        int page = query.getPage() == null || query.getPage() < 1 ? 1 : query.getPage();
+        int size = query.getSize() == null || query.getSize() < 1 ? 10 : query.getSize();
+        int required = page * size; // fetch enough items from each source to build the merged page
 
-        for (TransferTransaction t : transfers) {
-            history.add(mapTransferToHistory(t, empId));
+        LocalDate from = null;
+        LocalDate to = null;
+        if (query.getDateRange() != null) {
+            from = query.getDateRange().getFrom();
+            to = query.getDateRange().getTo();
         }
 
+        // fetch transfers limited
+        List<TransferTransaction> transfers = transferRepo.findFilteredForEmployee(
+                empId,
+                from,
+                to,
+                query.getTypes(),
+                query.getSort() == null ? null : query.getSort().getField(),
+                query.getSort() == null ? null : query.getSort().getDirection(),
+                required
+        );
 
-        // ===== FILTER + SORT =====
-        history = applyQuery(history, query);
+        // fetch redemptions limited only if REDEEM is requested (or no types filter)
+        boolean includeRedeem = query.getTypes() == null || query.getTypes().isEmpty() || query.getTypes().contains(HistoryType.REDEEM);
+        List<RedemptionTransaction> redemptions = new ArrayList<>();
+        long redemptionCount = 0;
+        if (includeRedeem) {
+            java.time.LocalDateTime fromDt = from == null ? null : from.atStartOfDay();
+            java.time.LocalDateTime toDt = to == null ? null : java.time.LocalDateTime.of(to, java.time.LocalTime.MAX);
+            if (fromDt == null) fromDt = java.time.LocalDateTime.MIN;
+            if (toDt == null) toDt = java.time.LocalDateTime.MAX;
 
-        // ===== RECORDS COUNT + RETURN DTO ===== 
-        BonusPointViewDto dto =
-                mapper.toViewDto(account, history);
+            redemptionCount = redemptionRepo.countByAccount_EmpIdAndCreatedAtBetween(empId, fromDt, toDt);
+            var pageReq = org.springframework.data.domain.PageRequest.of(0, required, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+            redemptions = redemptionRepo.findByAccount_EmpIdAndCreatedAtBetween(empId, fromDt, toDt, pageReq).getContent();
+        }
 
-        dto.setTotalRecords(history.size());
+        // map + merge + sort
+        List<HistoryItemDto> transferHistory = new ArrayList<>();
+        for (TransferTransaction t : transfers) transferHistory.add(mapTransferToHistory(t, empId));
+
+        List<HistoryItemDto> redemptionHistory = new ArrayList<>();
+        for (RedemptionTransaction r : redemptions) {
+            redemptionHistory.add(
+                    HistoryItemDto.builder()
+                            .id(r.getRedemptionId())
+                            .type(HistoryType.REDEEM)
+                            .points(r.getConvertedPoint())
+                            .amount(r.getAmountReceived())
+                            .currency("USD")
+                            .createdAt(r.getCreatedAt())
+                            .build()
+            );
+        }
+
+        List<HistoryItemDto> merged = new ArrayList<>();
+        merged.addAll(transferHistory);
+        merged.addAll(redemptionHistory);
+        merged.sort(buildComparator(query.getSort()));
+
+        // slice for requested page
+        long transferCount = transferRepo.countFilteredForEmployee(empId, from, to, query.getTypes());
+        long totalRecords = transferCount + redemptionCount;
+        int fromIndex = (page - 1) * size;
+        int toIndex = Math.min(fromIndex + size, merged.size());
+        List<HistoryItemDto> pagedHistory = fromIndex >= merged.size() ? List.of() : merged.subList(fromIndex, toIndex);
+
+        BonusPointViewDto dto = mapper.toViewDto(account, pagedHistory);
+
+        dto.setTotalRecords(totalRecords);
         if (query.getDateRange() != null) {
             dto.setDateFrom(query.getDateRange().getFrom());
             dto.setDateTo(query.getDateRange().getTo());
         }
+        dto.setPage(page);
+        dto.setSize(size);
         return dto;
     }
 

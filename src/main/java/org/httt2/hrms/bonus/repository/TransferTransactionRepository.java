@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface TransferTransactionRepository
-        extends JpaRepository<TransferTransaction, Long> {
+        extends JpaRepository<TransferTransaction, Long>, TransferTransactionRepositoryCustom {
 
     List<TransferTransaction> findBySender_EmpId(Long empId);
     List<TransferTransaction> findByReceiver_EmpId(Long empId);

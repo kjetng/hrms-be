@@ -19,6 +19,9 @@ public class BonusPointViewDto {
     private LocalDate dateFrom;
     private LocalDate dateTo;
 
+    private Integer page;
+    private Integer size;
+
     private List<HistoryItemDto> history;
 
 }
