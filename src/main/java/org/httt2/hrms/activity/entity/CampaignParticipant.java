@@ -3,7 +3,6 @@ package org.httt2.hrms.activity.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.httt2.hrms.activity.entity.id.CampaignParticipantId;
-import org.httt2.hrms.employee.entity.Employee;
 import java.time.LocalDateTime;
 
 @Entity
@@ -13,15 +12,14 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@IdClass(CampaignParticipantId.class)
 public class CampaignParticipant {
 
-  @EmbeddedId
-  private CampaignParticipantId id;
+  @Id
+  private Long empId;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @MapsId("empId") // Maps to the key class
-  @JoinColumn(name = "emp_id")
-  private Employee employee;
+  @Id
+  private Long campaignId;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @MapsId("campaignId") // Maps to the key class

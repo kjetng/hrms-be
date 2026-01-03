@@ -6,7 +6,8 @@ import jakarta.validation.constraints.Size;
 import org.httt2.hrms.auth.entity.Role;
 
 public record RegisterRequest(
-    @NotBlank @Email String email,
-    @NotBlank @Size(min = 6) String password,
-    Role role
-) {}
+        @NotBlank @Email String email,
+        @NotBlank @Size(min = 6) String password,
+        Role role,
+        Long empId) {
+}

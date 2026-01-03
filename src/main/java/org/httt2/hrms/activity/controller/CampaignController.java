@@ -3,12 +3,15 @@ package org.httt2.hrms.activity.controller;
 import lombok.RequiredArgsConstructor;
 import org.httt2.hrms.activity.entity.Campaign;
 import org.httt2.hrms.activity.service.CampaignService;
+import org.httt2.hrms.auth.config.JwtService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.httt2.hrms.activity.dto.CampaignCreateRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 import java.util.Optional;
+import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/campaigns")
@@ -17,6 +20,7 @@ import java.util.Optional;
 public class CampaignController {
 
     private final CampaignService campaignService;
+    private final JwtService jwtService;
 
     @GetMapping
     public ResponseEntity<List<Campaign>> getAllCampaigns() {
@@ -33,7 +37,7 @@ public class CampaignController {
         try {
             Optional<Campaign> campaign = campaignService.getCampaignById(campaignId);
             return campaign.map(ResponseEntity::ok)
-                          .orElse(ResponseEntity.notFound().build());
+                    .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
@@ -62,6 +66,7 @@ public class CampaignController {
         }
     }
 
+    // EMPLOYEE:Lấy danh sách campaign đang mở (Cho phần "You Can Join")
     @GetMapping("/active")
     public ResponseEntity<List<Campaign>> getActiveCampaigns() {
         try {
@@ -95,5 +100,59 @@ public class CampaignController {
             e.printStackTrace(); // Log lỗi để debug
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateCampaign(@PathVariable Long id, @RequestBody CampaignCreateRequest request) {
+        try {
+            Campaign updatedCampaign = campaignService.updateCampaign(id, request);
+            return ResponseEntity.ok(updatedCampaign);
+        } catch (RuntimeException e) {
+            // Bắt lỗi không tìm thấy ID hoặc lỗi validate ngày tháng
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PostMapping("/{id}/publish")
+    public ResponseEntity<Campaign> publishCampaign(@PathVariable Long id) {
+        // Gọi service để đổi status -> "active"
+        Campaign publishedCampaign = campaignService.publishCampaign(id);
+        return ResponseEntity.ok(publishedCampaign);
+    }
+
+    @PostMapping("/{id}/register")
+    public ResponseEntity<?> registerCampaign(
+            @PathVariable Long id,
+            Principal principal,
+            HttpServletRequest request) {
+        if (principal == null) {
+            return ResponseEntity.status(401).body("Unauthorized. Please login first.");
+        }
+
+        try {
+            String userEmail = principal.getName();
+            Long empId = jwtService.extractEmpIdFromRequest(request);
+
+            campaignService.registerForCampaign(id, userEmail, empId);
+            return ResponseEntity.ok("Successfully registered for the campaign!");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("An error occurred: " + e.getMessage());
+        }
+    }
+
+    // EMPLOYEE: Lấy danh sách campaign của tôi (Cho phần "My Active Campaigns")
+    @GetMapping("/my-campaigns")
+    public ResponseEntity<List<Campaign>> getMyCampaigns(Principal principal, HttpServletRequest request) {
+        if (principal == null)
+            return ResponseEntity.status(401).build();
+
+        Long empId = jwtService.extractEmpIdFromRequest(request);
+
+        return ResponseEntity.ok(campaignService.getMyCampaigns(principal.getName(), empId));
     }
 }
