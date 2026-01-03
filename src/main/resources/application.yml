@@ -8,7 +8,7 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
@@ -42,7 +42,7 @@ spring:
 server:
   port: 8080
   #servlet:
-   # context-path: /api
+  # context-path: /api
 
 # Logging
 logging:

@@ -76,6 +76,44 @@ public class CampaignService {
         return campaignRepository.save(campaign);
     }
 
+    public Campaign updateCampaign(Long id, CampaignCreateRequest request) {
+        log.info("Updating campaign ID: {}", id);
+
+        // 1. Tìm campaign cũ, nếu không thấy thì báo lỗi
+        Campaign existingCampaign = campaignRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Campaign not found with id: " + id));
+
+        // 2. Validate Logic (Ngày kết thúc không được trước ngày bắt đầu)
+        if (request.getEndDate().isBefore(request.getStartDate())) {
+            throw new IllegalArgumentException("End date cannot be before start date");
+        }
+
+        // 3. Cập nhật thông tin từ Request vào Entity
+        existingCampaign.setCampaignName(request.getCampaignName());
+        existingCampaign.setDescription(request.getDescription());
+        existingCampaign.setCampaignType(request.getCampaignType());
+        existingCampaign.setStartDate(request.getStartDate());
+        existingCampaign.setEndDate(request.getEndDate());
+        existingCampaign.setStartTime(request.getStartTime());
+        existingCampaign.setEndTime(request.getEndTime());
+
+        // 4. Cập nhật ảnh (Chỉ cập nhật nếu Frontend có gửi chuỗi khác rỗng/null)
+        if (request.getImageUrl() != null) {
+            // Nếu frontend gửi chuỗi rỗng "" nghĩa là user muốn xóa ảnh -> set null
+            // Nếu frontend gửi link s3 -> set link đó
+            existingCampaign.setImageUrl(request.getImageUrl().isEmpty() ? null : request.getImageUrl());
+        }
+
+        // 5. Tính toán lại Primary Metric nếu user đổi loại activity
+        existingCampaign.setPrimaryMetric(determinePrimaryMetric(request.getCampaignType()));
+
+        // 6. Cập nhật Status dựa trên ngày tháng mới (Optional - Logic thông minh)
+        // Ví dụ: Nếu sửa ngày bắt đầu thành tương lai -> status về 'draft' hoặc 'upcoming'
+        // Ở đây mình giữ nguyên logic đơn giản là lưu lại thôi.
+        
+        return campaignRepository.save(existingCampaign);
+    }
+
     // Helper method để xác định đơn vị đo lường
     private String determinePrimaryMetric(String type) {
         if (type == null) return "Points";
