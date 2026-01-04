@@ -1,6 +1,7 @@
 package org.httt2.hrms.bonus.service;
 
 import lombok.RequiredArgsConstructor;
+import org.httt2.hrms.auth.config.JwtService;
 import org.httt2.hrms.bonus.dto.*;
 import org.httt2.hrms.bonus.entity.BonusPointAccount;
 import org.httt2.hrms.bonus.entity.RedemptionTransaction;
@@ -10,13 +11,22 @@ import org.httt2.hrms.bonus.mapper.BonusPointViewMapper;
 import org.httt2.hrms.bonus.repository.BonusPointAccountRepository;
 import org.httt2.hrms.bonus.repository.RedemptionTransactionRepository;
 import org.httt2.hrms.bonus.repository.TransferTransactionRepository;
+import org.httt2.hrms.common.external.employee.EmployeeRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -30,20 +40,30 @@ public class BonusPointViewService {
     private final RedemptionTransactionRepository redemptionRepo;
     private final TransferTransactionRepository transferRepo;
     private final BonusPointViewMapper mapper;
+    private final EmployeeRepository employeeRepository;
+    private final JwtService jwtService;
 
+    @Transactional(readOnly = false)
     public BonusPointViewDto getMyBonusPointView(
-            BonusPointViewQueryDto query
-    ) {
-        Long empId = TEST_EMP_ID;
+            BonusPointViewQueryDto query) {
+        Long empId = extractEmpIdFromRequest();
+        if (empId == null) {
+            throw new IllegalStateException("User not authenticated or empId not found in token");
+        }
 
         BonusPointAccount account = accountRepo.findById(empId)
-                .orElseThrow(() -> new IllegalStateException("Account not found"));
+                .orElseGet(() -> accountRepo.save(
+                        BonusPointAccount.builder()
+                                .empId(empId)
+                                .bonusPoint(0)
+                                .build()));
 
         List<HistoryItemDto> history = new ArrayList<>();
 
+        Map<Long, String> employeeNameCache = new HashMap<>();
+
         // ===== REDEEM =====
-        for (RedemptionTransaction r :
-                redemptionRepo.findByAccount_EmpId(empId)) {
+        for (RedemptionTransaction r : redemptionRepo.findByAccount_EmpId(empId)) {
 
             // filter by date
             if (query.getDateRange() != null) {
@@ -69,8 +89,7 @@ public class BonusPointViewService {
                             .amount(r.getAmountReceived())
                             .currency("USD")
                             .createdAt(r.getCreatedAt())
-                            .build()
-            );
+                            .build());
         }
 
         // ===== TRANSFERS / AWARD / DEDUCT / MONTHLY (paged) =====
@@ -93,27 +112,33 @@ public class BonusPointViewService {
                 query.getTypes(),
                 query.getSort() == null ? null : query.getSort().getField(),
                 query.getSort() == null ? null : query.getSort().getDirection(),
-                required
-        );
+                required);
 
         // fetch redemptions limited only if REDEEM is requested (or no types filter)
-        boolean includeRedeem = query.getTypes() == null || query.getTypes().isEmpty() || query.getTypes().contains(HistoryType.REDEEM);
+        boolean includeRedeem = query.getTypes() == null || query.getTypes().isEmpty()
+                || query.getTypes().contains(HistoryType.REDEEM);
         List<RedemptionTransaction> redemptions = new ArrayList<>();
         long redemptionCount = 0;
         if (includeRedeem) {
             java.time.LocalDateTime fromDt = from == null ? null : from.atStartOfDay();
             java.time.LocalDateTime toDt = to == null ? null : java.time.LocalDateTime.of(to, java.time.LocalTime.MAX);
-            if (fromDt == null) fromDt = java.time.LocalDateTime.MIN;
-            if (toDt == null) toDt = java.time.LocalDateTime.MAX;
+            if (fromDt == null)
+                fromDt = java.time.LocalDateTime.of(1970, 1, 1, 0, 0);
+            if (toDt == null)
+                toDt = java.time.LocalDateTime.of(3000, 1, 1, 0, 0);
 
             redemptionCount = redemptionRepo.countByAccount_EmpIdAndCreatedAtBetween(empId, fromDt, toDt);
-            var pageReq = org.springframework.data.domain.PageRequest.of(0, required, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
-            redemptions = redemptionRepo.findByAccount_EmpIdAndCreatedAtBetween(empId, fromDt, toDt, pageReq).getContent();
+            var pageReq = org.springframework.data.domain.PageRequest.of(0, required,
+                    org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC,
+                            "createdAt"));
+            redemptions = redemptionRepo.findByAccount_EmpIdAndCreatedAtBetween(empId, fromDt, toDt, pageReq)
+                    .getContent();
         }
 
         // map + merge + sort
         List<HistoryItemDto> transferHistory = new ArrayList<>();
-        for (TransferTransaction t : transfers) transferHistory.add(mapTransferToHistory(t, empId));
+        for (TransferTransaction t : transfers)
+            transferHistory.add(mapTransferToHistory(t, empId, employeeNameCache));
 
         List<HistoryItemDto> redemptionHistory = new ArrayList<>();
         for (RedemptionTransaction r : redemptions) {
@@ -125,8 +150,7 @@ public class BonusPointViewService {
                             .amount(r.getAmountReceived())
                             .currency("USD")
                             .createdAt(r.getCreatedAt())
-                            .build()
-            );
+                            .build());
         }
 
         List<HistoryItemDto> merged = new ArrayList<>();
@@ -157,8 +181,8 @@ public class BonusPointViewService {
 
     private HistoryItemDto mapTransferToHistory(
             TransferTransaction t,
-            Long empId
-    ) {
+            Long empId,
+            Map<Long, String> employeeNameCache) {
         Long senderId = t.getSender().getEmpId();
         Long receiverId = t.getReceiver().getEmpId();
 
@@ -202,9 +226,7 @@ public class BonusPointViewService {
                     .type(HistoryType.TRANSFER_SENT)
                     .points(t.getNumberPoint())
                     .counterpartyId(receiverId)
-                    .counterpartyName(
-                            t.getReceiver().getEmployee().getFullName()
-                    )
+                    .counterpartyName(resolveEmployeeName(receiverId, employeeNameCache))
                     .note(t.getNote())
                     .createdAt(t.getCreatedAt())
                     .build();
@@ -216,18 +238,32 @@ public class BonusPointViewService {
                 .type(HistoryType.TRANSFER_RECEIVED)
                 .points(t.getNumberPoint())
                 .counterpartyId(senderId)
-                .counterpartyName(
-                        t.getSender().getEmployee().getFullName()
-                )
+                .counterpartyName(resolveEmployeeName(senderId, employeeNameCache))
                 .note(t.getNote())
                 .createdAt(t.getCreatedAt())
                 .build();
     }
 
+    private String resolveEmployeeName(Long id, Map<Long, String> cache) {
+        if (id == null)
+            return null;
+        if (cache.containsKey(id))
+            return cache.get(id);
+
+        if (SYSTEM_EMP_ID.equals(id)) {
+            cache.put(id, "System");
+            return "System";
+        }
+
+        var employee = employeeRepository.getOneById(id);
+        String fullName = employee == null ? null : employee.fullName();
+        cache.put(id, fullName);
+        return fullName;
+    }
+
     private List<HistoryItemDto> applyQuery(
             List<HistoryItemDto> history,
-            BonusPointViewQueryDto query
-    ) {
+            BonusPointViewQueryDto query) {
         return history.stream()
                 .filter(item -> matchesDate(item, query.getDateRange()))
                 .filter(item -> matchesType(item, query.getTypes()))
@@ -237,9 +273,9 @@ public class BonusPointViewService {
 
     private boolean matchesDate(
             HistoryItemDto item,
-            BonusPointViewQueryDto.DateRange range
-    ) {
-        if (range == null) return true;
+            BonusPointViewQueryDto.DateRange range) {
+        if (range == null)
+            return true;
 
         LocalDate date = item.getCreatedAt().toLocalDate();
 
@@ -254,21 +290,39 @@ public class BonusPointViewService {
 
     private boolean matchesType(
             HistoryItemDto item,
-            List<HistoryType> types
-    ) {
+            List<HistoryType> types) {
         return types == null || types.isEmpty()
                 || types.contains(item.getType());
     }
 
     private Comparator<HistoryItemDto> buildComparator(
-            BonusPointViewQueryDto.Sort sort
-    ) {
-        Comparator<HistoryItemDto> comparator =
-                Comparator.comparing(HistoryItemDto::getCreatedAt);
+            BonusPointViewQueryDto.Sort sort) {
+        Comparator<HistoryItemDto> comparator = Comparator.comparing(HistoryItemDto::getCreatedAt);
 
         if (sort == null || sort.getDirection() == SortDirection.DESC) {
             comparator = comparator.reversed();
         }
         return comparator;
+    }
+
+    private Long extractEmpIdFromRequest() {
+        var attributes = RequestContextHolder.getRequestAttributes();
+        if (attributes instanceof ServletRequestAttributes servletAttributes) {
+            HttpServletRequest request = servletAttributes.getRequest();
+            Long empId = jwtService.extractEmpIdFromRequest(request);
+            if (empId != null) {
+                return empId;
+            }
+        }
+
+        // Fallback: try to get from SecurityContext
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof UserDetails userDetails) {
+            if (userDetails instanceof org.httt2.hrms.auth.entity.User user) {
+                return user.getEmpId();
+            }
+        }
+
+        return null;
     }
 }
