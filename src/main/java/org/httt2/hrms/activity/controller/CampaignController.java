@@ -5,14 +5,17 @@ import org.httt2.hrms.activity.entity.Campaign;
 import org.httt2.hrms.activity.entity.EmployeeActivity;
 import org.httt2.hrms.activity.service.CampaignService;
 import org.httt2.hrms.auth.config.JwtService;
+import org.httt2.hrms.auth.config.JwtService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.httt2.hrms.activity.dto.ActivitySubmissionRequest;
 import org.httt2.hrms.activity.dto.CampaignCreateRequest;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 import java.util.Optional;
+import java.security.Principal;
 import java.security.Principal;
 
 @RestController
@@ -22,6 +25,7 @@ import java.security.Principal;
 public class CampaignController {
 
     private final CampaignService campaignService;
+    private final JwtService jwtService;
     private final JwtService jwtService;
 
     @GetMapping
@@ -39,7 +43,7 @@ public class CampaignController {
         try {
             Optional<Campaign> campaign = campaignService.getCampaignById(campaignId);
             return campaign.map(ResponseEntity::ok)
-                          .orElse(ResponseEntity.notFound().build());
+                    .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }

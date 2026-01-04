@@ -14,21 +14,21 @@ public class StorageController {
 
   private final FileStorageService fileStorageService;
 
-//  @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-//  public ResponseEntity<List<String>> uploadFiles(
-//      @RequestPart("files") List<MultipartFile> files
-//  ) {
-//    List<String> fileKeys = fileStorageService.uploadMultiple(files);
-//    return ResponseEntity.ok(fileKeys);
-//  }
+  // @PostMapping(value = "/upload", consumes =
+  // MediaType.MULTIPART_FORM_DATA_VALUE)
+  // public ResponseEntity<List<String>> uploadFiles(
+  // @RequestPart("files") List<MultipartFile> files
+  // ) {
+  // List<String> fileKeys = fileStorageService.uploadMultiple(files);
+  // return ResponseEntity.ok(fileKeys);
+  // }
 
   /**
    * Deletes one or multiple files by Key.
    */
   @DeleteMapping("/delete")
   public ResponseEntity<Void> deleteFiles(
-      @RequestBody List<String> fileKeys
-  ) {
+      @RequestBody List<String> fileKeys) {
     fileStorageService.deleteMultiple(fileKeys);
     return ResponseEntity.noContent().build();
   }
@@ -41,8 +41,7 @@ public class StorageController {
   @GetMapping("/presigned-url")
   public ResponseEntity<PutPresignedResult> getPresignedUrl(
       @RequestParam("fileName") String fileName,
-      @RequestParam("contentType") String contentType
-  ) {
+      @RequestParam("contentType") String contentType) {
     return ResponseEntity.ok(fileStorageService.getPresignedUrl(fileName, contentType));
   }
 }

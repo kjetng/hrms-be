@@ -20,6 +20,7 @@ import org.httt2.hrms.activity.dto.ActivitySubmissionRequest;
 import java.util.List;
 import java.util.Optional;
 import java.time.LocalDateTime;
+import java.time.LocalDateTime;
 
 @Slf4j
 @Service
@@ -83,9 +84,9 @@ public class CampaignService {
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
                 .imageUrl(request.getImageUrl())
-                // Status sẽ được @PrePersist trong Entity xử lý thành 'draft', 
+                // Status sẽ được @PrePersist trong Entity xử lý thành 'draft',
                 // hoặc bạn có thể set logic 'active' nếu startDate là hôm nay tại đây.
-                .status("draft") 
+                .status("draft")
                 .build();
 
         return campaignRepository.save(campaign);
@@ -144,7 +145,8 @@ public class CampaignService {
 
     // Helper method để xác định đơn vị đo lường
     private String determinePrimaryMetric(String type) {
-        if (type == null) return "Points";
+        if (type == null)
+            return "Points";
         switch (type.toLowerCase()) {
             case "walking":
             case "running":

@@ -1,5 +1,5 @@
 # Multi-stage build: First stage builds the app, second copies the JAR to runtime
-FROM eclipse-temurin:24-jdk-alpine AS builder
+FROM eclipse-temurin:21-jdk-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -17,13 +17,16 @@ COPY src ./src
 RUN ./gradlew build --no-daemon
 
 # Runtime stage: Use slim JRE image
-FROM eclipse-temurin:24-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 
 # Set working directory
 WORKDIR /app
 
 # Copy the built JAR from builder stage
 COPY --from=builder /app/build/libs/*.jar app.jar
+
+# Copy .env file (optional, as environment variables are set in docker-compose)
+COPY .env .env
 
 # Expose Spring Boot port (default 8080)
 EXPOSE 8080
