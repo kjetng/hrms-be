@@ -4,7 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.httt2.hrms.common.external.employee.EmployeeRepository;
 import org.httt2.hrms.common.external.employee.dto.EmployeeResponse;
+import org.httt2.hrms.common.external.employee.dto.ManagerEmployeeResponse;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -48,13 +50,7 @@ public class EmployeeRepositoryImpl implements EmployeeRepository {
         .buildAndExpand(id)
         .toUriString();
 
-    HttpHeaders headers = new HttpHeaders();
-    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-    String bearer = resolveBearerToken();
-    if (bearer != null && !bearer.isBlank()) {
-      headers.setBearerAuth(bearer);
-    }
-
+    HttpHeaders headers = buildHeaders();
     HttpEntity<Void> entity = new HttpEntity<>(headers);
 
     try {
@@ -74,6 +70,51 @@ public class EmployeeRepositoryImpl implements EmployeeRepository {
       log.warn("Failed to call employee service for id {}", id, e);
       return null;
     }
+  }
+
+  @Override
+  public List<ManagerEmployeeResponse> getDirectReports(Long managerId) {
+    if (managerId == null)
+      return List.of();
+    if (baseUrl == null || baseUrl.isBlank()) {
+      log.warn("Employee service base url is not configured");
+      return List.of();
+    }
+
+    String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
+        .path("/api/employees/manager/{id}")
+        .buildAndExpand(managerId)
+        .toUriString();
+
+    HttpHeaders headers = buildHeaders();
+    HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+    try {
+      ResponseEntity<List<ManagerEmployeeResponse>> response = restTemplate.exchange(
+          url,
+          HttpMethod.GET,
+          entity,
+          new ParameterizedTypeReference<List<ManagerEmployeeResponse>>() {
+          });
+      return response.getBody() == null ? List.of() : response.getBody();
+    } catch (RestClientResponseException e) {
+      log.warn("Employee service responded with error for manager {}: status={} body={}", managerId,
+          e.getRawStatusCode(), e.getResponseBodyAsString());
+      return List.of();
+    } catch (RestClientException e) {
+      log.warn("Failed to call employee service for manager {}", managerId, e);
+      return List.of();
+    }
+  }
+
+  private HttpHeaders buildHeaders() {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+    String bearer = resolveBearerToken();
+    if (bearer != null && !bearer.isBlank()) {
+      headers.setBearerAuth(bearer);
+    }
+    return headers;
   }
 
   private String resolveBearerToken() {
