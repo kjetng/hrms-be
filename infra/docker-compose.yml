@@ -1,0 +1,48 @@
+include:
+ - infra.yml
+
+services:
+  # Java Application
+  hrms-app:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    container_name: hrms_app
+    environment:
+      # Database Configuration (use host.docker.internal for localhost services)
+      DB_URL: jdbc:postgresql://postgres:5432/hrms
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      
+      # RabbitMQ Configuration (use rabbitmq_broker if in same network, or host.docker.internal)
+      RABBITMQ_HOST: rabbitmq_broker
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_EXCHANGE: hrms.exchange
+      RABBITMQ_ROUTING_KEY_SEND_EMAIL: send.email
+      
+      # JWT Configuration
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+      
+      # AWS Configuration
+      AWS_ACCESS_KEY: ${AWS_ACCESS_KEY}
+      AWS_SECRET_KEY: ${AWS_SECRET_KEY}
+      AWS_REGION: ${AWS_REGION:-ap-southeast-1}
+      AWS_BUCKET_NAME: ${AWS_BUCKET_NAME}
+      
+      # Mail Configuration (optional)
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      
+      # Onboarding Configuration
+      ONBOARDING_BASE_URL: ${ONBOARDING_BASE_URL:-http://localhost:5173}
+      ONBOARDING_TOKEN_EXPIRATION: ${ONBOARDING_TOKEN_EXPIRATION:-604800000}
+    ports:
+      - "8080:8080"
+    networks:
+      - hrms-network
+    restart: unless-stopped

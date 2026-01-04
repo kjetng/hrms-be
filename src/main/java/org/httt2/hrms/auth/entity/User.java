@@ -1,8 +1,10 @@
 package org.httt2.hrms.auth.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
-import org.httt2.hrms.employee.entity.Employee;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -28,14 +30,11 @@ public class User implements UserDetails {
   @Column(nullable = false)
   private String password;
 
+  private Long empId;
+
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private Role role;
-
-  // The Link to the HR Data
-  @OneToOne
-  @JoinColumn(name = "emp_id", referencedColumnName = "empId")
-  private Employee employee;
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
