@@ -1,5 +1,6 @@
 package org.httt2.hrms.activity.repository;
 
+import org.httt2.hrms.activity.dto.approval.PendingCampaignDTO;
 import org.httt2.hrms.activity.entity.Campaign;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -25,10 +26,18 @@ public interface CampaignRepository extends JpaRepository<Campaign, Long> {
 
     List<Campaign> findByStatus(String status);
 
+    // Lấy danh sách chiến dịch mà nhân viên đã tham gia
     @Query(value = """
     SELECT c.* FROM campaign c 
     JOIN campaign_participant cp ON c.campaign_id = cp.campaign_id 
     WHERE cp.emp_id = :empId
     """, nativeQuery = true)
     List<Campaign> findByEmpId(@Param("empId") Long empId);
+    
+    // Lấy danh sách chiến dịch có hoạt động đang chờ duyệt
+    @Query("SELECT new org.httt2.hrms.activity.dto.approval.PendingCampaignDTO(c.campaignId, c.campaignName, COUNT(a)) " +
+           "FROM Campaign c JOIN EmployeeActivity a ON c.campaignId = a.campaign.campaignId " +
+           "WHERE a.status = 'pending' " +
+           "GROUP BY c.campaignId, c.campaignName")
+    List<PendingCampaignDTO> findCampaignsWithPendingActivities();
 }

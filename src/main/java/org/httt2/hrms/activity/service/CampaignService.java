@@ -242,6 +242,67 @@ public class CampaignService {
     public List<EmployeeActivity> getMyCampaignActivities(Long campaignId, Long empId) {
         return activityRepository.findByCampaign_CampaignIdAndEmpIdOrderByCreatedAtDesc(campaignId, empId);
     }
+
+    // 4. Xóa Activity đã submit (Chỉ khi status là pending)
+    @Transactional
+    public void deleteActivity(Long activityId, Long empId) {
+        // 1. Tìm Activity
+        EmployeeActivity activity = activityRepository.findById(activityId)
+                .orElseThrow(() -> new RuntimeException("Activity not found"));
+
+        // 2. Validate: Có phải của chính nhân viên này không?
+        if (!activity.getEmpId().equals(empId)) {
+            throw new RuntimeException("Unauthorized: You do not own this activity.");
+        }
+
+        // 3. Validate: Status phải là 'pending'
+        if (!"pending".equalsIgnoreCase(activity.getStatus())) {
+            throw new RuntimeException("Cannot delete processed activity (Status: " + activity.getStatus() + ")");
+        }
+
+        // 4. Xóa
+        activityRepository.delete(activity);
+        log.info("Deleted activity {} by emp {}", activityId, empId);
+    }
+
+    // 3. Cập nhật Activity đã submit (Chỉ khi status là pending)
+    @Transactional
+    public EmployeeActivity updateActivity(Long activityId, Long empId, ActivitySubmissionRequest request) {
+        // 1. Tìm Activity
+        EmployeeActivity activity = activityRepository.findById(activityId)
+                .orElseThrow(() -> new RuntimeException("Activity not found"));
+
+        // 2. Validate Owner (Quyền sở hữu)
+        if (!activity.getEmpId().equals(empId)) {
+            throw new RuntimeException("Unauthorized: You do not own this activity.");
+        }
+
+        // 3. Validate Status (Chỉ cho sửa khi còn pending)
+        if (!"pending".equalsIgnoreCase(activity.getStatus())) {
+            throw new RuntimeException("Cannot edit processed activity (Status: " + activity.getStatus() + ")");
+        }
+
+        // 4. Validate Date Range (Giống hàm submit)
+        Campaign campaign = activity.getCampaign(); // Lấy chiến dịch từ activity
+        
+        if (request.getActivityDate().isBefore(campaign.getStartDate()) || 
+            request.getActivityDate().isAfter(campaign.getEndDate())) {
+            throw new IllegalArgumentException("Activity date must be within campaign duration (" 
+                + campaign.getStartDate() + " to " + campaign.getEndDate() + ")");
+        }
+
+        // 5. Cập nhật thông tin
+        activity.setActivityDate(request.getActivityDate());
+        activity.setMetrics(request.getMetrics());
+        
+        // Nếu có ảnh mới thì update
+        if (request.getProofImage() != null && !request.getProofImage().isEmpty()) {
+            activity.setProofImage(request.getProofImage());
+        }
+
+        // 6. Lưu lại
+        return activityRepository.save(activity);
+    }
 }
 
 

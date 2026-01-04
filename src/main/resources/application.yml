@@ -49,6 +49,7 @@ logging:
   level:
     org.httt2.hrms: TRACE
     org.hibernate.SQL: DEBUG
+    
 
 application:
   security:

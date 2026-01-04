@@ -196,6 +196,47 @@ public class CampaignController {
             return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
         }
     }
+
+
+    // DELETE ACTIVITY
+    @DeleteMapping("/activities/{activityId}")
+    public ResponseEntity<?> deleteActivity(
+            @PathVariable Long activityId,
+            HttpServletRequest request
+    ) {
+        try {
+            Long empId = jwtService.extractEmpIdFromRequest(request);
+            if (empId == null) return ResponseEntity.status(401).body("Unauthorized");
+
+            campaignService.deleteActivity(activityId, empId);
+            return ResponseEntity.ok("Activity deleted successfully");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+        }
+    }
+
+
+    // UPDATE ACTIVITY
+    @PutMapping("/activities/{activityId}")
+    public ResponseEntity<?> updateActivity(
+            @PathVariable Long activityId,
+            @RequestBody ActivitySubmissionRequest request,
+            HttpServletRequest httpServletRequest
+    ) {
+        try {
+            Long empId = jwtService.extractEmpIdFromRequest(httpServletRequest);
+            if (empId == null) return ResponseEntity.status(401).body("Unauthorized");
+
+            EmployeeActivity updatedActivity = campaignService.updateActivity(activityId, empId, request);
+            return ResponseEntity.ok(updatedActivity);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+        }
+    }
 }
 
 

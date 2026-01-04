@@ -22,6 +22,9 @@ public class EmployeeActivity {
   private String proofImage;
   private String status;
 
+  @Column(columnDefinition = "TEXT")
+  private String rejectionReason;
+
   private Long empId;
 
   @ManyToOne(fetch = FetchType.LAZY)
