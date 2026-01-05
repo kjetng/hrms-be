@@ -106,7 +106,9 @@ public class TeamMemberViewService {
                         managerDetails.email(),
                         null, // positionId
                         null, // departmentId
-                        managerDetails.status());
+                        managerDetails.status(),
+                        managerDetails.departmentName(),
+                        managerDetails.positionTitle());
                 allMembers.add(0, managerResponse);
                 log.debug("Added manager to team list: {}", managerDetails.fullName());
             } else {
@@ -145,8 +147,8 @@ public class TeamMemberViewService {
                         .id(r.id())
                         .name(r.fullName())
                         .email(r.email())
-                        .position(null)
-                        .department(null)
+                        .position(r.positionTitle())
+                        .department(r.departmentName())
                         .avatar(null)
                         .isManager(r.id().equals(finalManagerId))
                         .build())

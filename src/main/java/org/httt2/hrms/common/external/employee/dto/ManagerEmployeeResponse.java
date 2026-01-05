@@ -4,10 +4,12 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ManagerEmployeeResponse(
-        Long id,
-        String fullName,
-        String email,
-        Long positionId,
-        Long departmentId,
-        String status) {
+                Long id,
+                String fullName,
+                String email,
+                Long positionId,
+                Long departmentId,
+                String status,
+                String departmentName,
+                String positionTitle) {
 }
