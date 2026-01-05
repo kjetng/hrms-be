@@ -38,8 +38,9 @@ public class BonusPointController {
     @GetMapping("/team")
     public ResponseEntity<TeamMembersResponseDto> getTeamMembers(
             @RequestParam(value = "page", required = false) Integer page,
-            @RequestParam(value = "size", required = false) Integer size) {
-        return ResponseEntity.ok(teamMemberViewService.getTeamMembers(page, size));
+            @RequestParam(value = "size", required = false) Integer size,
+            @RequestParam(value = "search", required = false) String search) {
+        return ResponseEntity.ok(teamMemberViewService.getTeamMembers(page, size, search));
     }
 
     @PostMapping("/transfer")

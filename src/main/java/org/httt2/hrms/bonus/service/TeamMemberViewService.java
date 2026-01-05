@@ -33,7 +33,7 @@ public class TeamMemberViewService {
     private final EmployeeRepository employeeRepository;
     private final JwtService jwtService;
 
-    public TeamMembersResponseDto getTeamMembers(Integer page, Integer size) {
+    public TeamMembersResponseDto getTeamMembers(Integer page, Integer size, String search) {
         int pageNumber = page == null ? 1 : page;
         int pageSize = size == null ? 10 : size;
 
@@ -118,12 +118,26 @@ public class TeamMemberViewService {
             log.debug("Manager ID is null, not adding manager to team list");
         }
 
-        long totalRecords = allMembers.size();
+        // Apply search filter BEFORE pagination
+        List<ManagerEmployeeResponse> searchFiltered = allMembers;
+        if (search != null && !search.trim().isEmpty()) {
+            String searchLower = search.trim().toLowerCase();
+            searchFiltered = allMembers.stream()
+                    .filter(member -> matchesSearch(member, searchLower))
+                    .toList();
+            log.debug("Search applied: '{}' - filtered {} members from {}", search, searchFiltered.size(),
+                    allMembers.size());
+        }
+
+        // Count total records AFTER search filter is applied
+        long totalRecords = searchFiltered.size();
+
+        // Apply pagination to filtered results
         int fromIndex = (pageNumber - 1) * pageSize;
-        int toIndex = Math.min(fromIndex + pageSize, allMembers.size());
-        List<ManagerEmployeeResponse> pageSlice = fromIndex >= allMembers.size()
+        int toIndex = Math.min(fromIndex + pageSize, searchFiltered.size());
+        List<ManagerEmployeeResponse> pageSlice = fromIndex >= searchFiltered.size()
                 ? List.of()
-                : allMembers.subList(fromIndex, toIndex);
+                : searchFiltered.subList(fromIndex, toIndex);
 
         Long finalManagerId = managerId;
         List<TeamMemberDto> members = pageSlice.stream()
@@ -174,6 +188,30 @@ public class TeamMemberViewService {
             }
         }
         return null;
+    }
+
+    /**
+     * Check if a team member matches the search criteria.
+     * Performs case-insensitive partial matching against:
+     * - Full name (first name, last name, or full name)
+     * - Email address
+     * 
+     * @param member      the team member to check
+     * @param searchLower the search term (already converted to lowercase)
+     * @return true if the member matches the search criteria
+     */
+    private boolean matchesSearch(ManagerEmployeeResponse member, String searchLower) {
+        // Check full name (case-insensitive partial match)
+        if (member.fullName() != null && member.fullName().toLowerCase().contains(searchLower)) {
+            return true;
+        }
+
+        // Check email (case-insensitive partial match)
+        if (member.email() != null && member.email().toLowerCase().contains(searchLower)) {
+            return true;
+        }
+
+        return false;
     }
 
 }
