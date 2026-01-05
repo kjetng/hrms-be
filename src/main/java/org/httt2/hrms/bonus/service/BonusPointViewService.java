@@ -219,6 +219,7 @@ public class BonusPointViewService {
         }
 
         // 🎁 AWARD — prefer explicit DB type, fall back to sender==SYSTEM
+        // AWARD means points are given FROM system TO user
         if (t.getType() == TransferType.AWARD || (t.getType() == null && senderId.equals(SYSTEM_EMP_ID))) {
             return HistoryItemDto.builder()
                     .id(t.getTransferId())
@@ -230,6 +231,7 @@ public class BonusPointViewService {
         }
 
         // ⚠️ DEDUCT — prefer explicit DB type, fall back to receiver==SYSTEM
+        // DEDUCT means points are taken FROM user TO system
         if (t.getType() == TransferType.DEDUCT || (t.getType() == null && receiverId.equals(SYSTEM_EMP_ID))) {
             return HistoryItemDto.builder()
                     .id(t.getTransferId())
