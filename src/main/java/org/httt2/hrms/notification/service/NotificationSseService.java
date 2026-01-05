@@ -1,0 +1,155 @@
+package org.httt2.hrms.notification.service;
+
+import lombok.extern.slf4j.Slf4j;
+import org.httt2.hrms.notification.dto.NotificationResponse;
+import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Service for managing SSE connections for real-time notifications.
+ * Each employee can have one active SSE connection.
+ */
+@Service
+@Slf4j
+public class NotificationSseService {
+
+    private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
+
+    /**
+     * Creates a new SSE connection for an employee.
+     *
+     * @param empId the employee ID
+     * @return SseEmitter for the connection
+     */
+    public SseEmitter createConnection(Long empId) {
+        // Remove existing connection if any
+        SseEmitter existing = emitters.remove(empId);
+        if (existing != null) {
+            try {
+                existing.complete();
+            } catch (Exception e) {
+                log.warn("Error closing existing SSE connection for empId: {}", empId, e);
+            }
+        }
+
+        // Create new connection with 30 minute timeout
+        SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
+        emitters.put(empId, emitter);
+
+        // Handle completion and timeout
+        emitter.onCompletion(() -> {
+            log.info("SSE connection completed for empId: {}", empId);
+            emitters.remove(empId);
+        });
+
+        emitter.onTimeout(() -> {
+            log.info("SSE connection timeout for empId: {}", empId);
+            emitters.remove(empId);
+            try {
+                emitter.complete();
+            } catch (Exception e) {
+                log.warn("Error completing SSE connection on timeout for empId: {}", empId, e);
+            }
+        });
+
+        emitter.onError((ex) -> {
+            log.error("SSE connection error for empId: {}", empId, ex);
+            emitters.remove(empId);
+            try {
+                emitter.completeWithError(ex);
+            } catch (Exception e) {
+                log.warn("Error completing SSE connection on error for empId: {}", empId, e);
+            }
+        });
+
+        // Send initial connection event
+        try {
+            emitter.send(SseEmitter.event()
+                    .name("connected")
+                    .data("SSE connection established"));
+            log.info("SSE connection established for empId: {}", empId);
+        } catch (IOException e) {
+            log.error("Error sending initial SSE event for empId: {}", empId, e);
+            emitters.remove(empId);
+            emitter.completeWithError(e);
+        }
+
+        return emitter;
+    }
+
+    /**
+     * Sends a notification to a specific employee via SSE.
+     *
+     * @param empId the employee ID
+     * @param notification the notification to send
+     */
+    public void sendNotification(Long empId, NotificationResponse notification) {
+        SseEmitter emitter = emitters.get(empId);
+        if (emitter != null) {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("notification")
+                        .data(notification));
+                log.debug("Sent notification via SSE to empId: {}", empId);
+            } catch (IOException e) {
+                log.error("Error sending notification via SSE to empId: {}", empId, e);
+                emitters.remove(empId);
+                try {
+                    emitter.completeWithError(e);
+                } catch (Exception ex) {
+                    log.warn("Error completing SSE connection for empId: {}", empId, ex);
+                }
+            }
+        } else {
+            log.debug("No active SSE connection for empId: {}", empId);
+        }
+    }
+
+    /**
+     * Sends an unread count update to a specific employee via SSE.
+     *
+     * @param empId the employee ID
+     * @param count the unread count
+     */
+    public void sendUnreadCount(Long empId, Long count) {
+        SseEmitter emitter = emitters.get(empId);
+        if (emitter != null) {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("unread-count")
+                        .data(count));
+                log.debug("Sent unread count via SSE to empId: {}", empId);
+            } catch (IOException e) {
+                log.error("Error sending unread count via SSE to empId: {}", empId, e);
+                emitters.remove(empId);
+                try {
+                    emitter.completeWithError(e);
+                } catch (Exception ex) {
+                    log.warn("Error completing SSE connection for empId: {}", empId, ex);
+                }
+            }
+        }
+    }
+
+    /**
+     * Closes the SSE connection for an employee.
+     *
+     * @param empId the employee ID
+     */
+    public void closeConnection(Long empId) {
+        SseEmitter emitter = emitters.remove(empId);
+        if (emitter != null) {
+            try {
+                emitter.complete();
+                log.info("SSE connection closed for empId: {}", empId);
+            } catch (Exception e) {
+                log.warn("Error closing SSE connection for empId: {}", empId, e);
+            }
+        }
+    }
+}
+

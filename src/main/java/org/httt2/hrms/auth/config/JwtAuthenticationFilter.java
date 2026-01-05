@@ -39,16 +39,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       @NonNull HttpServletResponse response,
       @NonNull FilterChain filterChain) throws ServletException, IOException {
     final String authHeader = request.getHeader("Authorization");
+    final String jwt;
+    final String userEmail;
 
-    if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+    // Check Authorization header first
+    if (authHeader != null && authHeader.startsWith("Bearer ")) {
+      jwt = authHeader.substring("Bearer ".length());
+    }
+    // For SSE endpoints, check query parameter (EventSource doesn't support custom
+    // headers)
+    else if (request.getRequestURI().contains("/notifications/stream")) {
+      jwt = request.getParameter("token");
+      if (jwt == null || jwt.isEmpty()) {
+        filterChain.doFilter(request, response);
+        return;
+      }
+    } else {
       filterChain.doFilter(request, response);
       return;
     }
 
     try {
-      final String jwt = authHeader.substring("Bearer ".length());
-      final String userEmail = jwtService.extractUsername(jwt);
 
+      userEmail = jwtService.extractUsername(jwt);
       if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
         UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
         if (jwtService.isTokenValid(jwt, userDetails)) {

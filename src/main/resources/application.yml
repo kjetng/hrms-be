@@ -69,7 +69,9 @@ application:
 rabbitmq:
   queue:
     send-email: sendEmail
+    notification: notification
   exchange:
     name: ${RABBITMQ_EXCHANGE:hrms.exchange}
   routing-key:
     send-email: ${RABBITMQ_ROUTING_KEY_SEND_EMAIL:send.email}
+    notification: ${RABBITMQ_ROUTING_KEY_NOTIFICATION:notification}
