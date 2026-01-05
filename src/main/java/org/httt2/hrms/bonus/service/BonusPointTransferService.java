@@ -87,7 +87,8 @@ public class BonusPointTransferService {
             int available = sender.getBonusPoint();
             int requested = request.getPoints();
             if (available < requested) {
-                throw new IllegalStateException("Insufficient points to deduct: requested " + requested + ", available " + available);
+                throw new IllegalStateException(
+                        "Insufficient points to deduct: requested " + requested + ", available " + available);
             }
 
             sender.setBonusPoint(available - requested);
@@ -101,7 +102,8 @@ public class BonusPointTransferService {
             int available = sender.getBonusPoint();
             int requested = request.getPoints();
             if (available < requested) {
-                throw new IllegalStateException("Insufficient points to transfer: requested " + requested + ", available " + available);
+                throw new IllegalStateException(
+                        "Insufficient points to transfer: requested " + requested + ", available " + available);
             }
 
             sender.setBonusPoint(available - requested);
@@ -117,10 +119,9 @@ public class BonusPointTransferService {
         }
 
         // Create transaction record with system as sender/receiver for audit trail
-        BonusPointAccount senderForRecord = sender != null ? sender : 
-                accountRepo.findById(actualSenderId).orElse(null);
-        BonusPointAccount receiverForRecord = receiver != null ? receiver :
-                accountRepo.findById(actualReceiverId).orElse(null);
+        BonusPointAccount senderForRecord = sender != null ? sender : accountRepo.findById(actualSenderId).orElse(null);
+        BonusPointAccount receiverForRecord = receiver != null ? receiver
+                : accountRepo.findById(actualReceiverId).orElse(null);
 
         TransferTransaction savedTransaction = transferRepo.save(
                 TransferTransaction.builder()

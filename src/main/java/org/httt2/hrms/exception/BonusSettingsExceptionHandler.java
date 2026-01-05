@@ -12,24 +12,22 @@ import java.util.Map;
 @RestControllerAdvice(basePackages = "org.httt2.hrms.bonus")
 public class BonusSettingsExceptionHandler {
 
-    /**
-     * DTO validation errors
-     * (@NotNull, @Min, @Max, etc.)
-     */
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationErrors(
-            MethodArgumentNotValidException ex) {
+        /**
+         * DTO validation errors
+         * (@NotNull, @Min, @Max, etc.)
+         */
+        @ExceptionHandler(MethodArgumentNotValidException.class)
+        public ResponseEntity<Map<String, String>> handleValidationErrors(
+                        MethodArgumentNotValidException ex) {
 
-        Map<String, String> errors = new HashMap<>();
+                Map<String, String> errors = new HashMap<>();
 
-        ex.getBindingResult()
-                .getFieldErrors()
-                .forEach(error ->
-                        errors.put(error.getField(), error.getDefaultMessage())
-                );
+                ex.getBindingResult()
+                                .getFieldErrors()
+                                .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
 
-        return ResponseEntity.badRequest().body(errors);
-    }
+                return ResponseEntity.badRequest().body(errors);
+        }
 
         /**
          * Business rule violations (e.g., insufficient points).
