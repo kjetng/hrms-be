@@ -29,7 +29,11 @@ public class BonusCreditSettingController {
     public ResponseEntity<BonusCreditSettingDto> getSetting() {
         BonusCreditSetting entity = service.getCurrentSetting();
         BonusCreditSettingDto dto = mapper.toDto(entity);
-        dto.setRole(extractRoleFromRequest());
+
+        if (dto != null) {
+            dto.setRole(extractRoleFromRequest());
+        }
+
         return ResponseEntity.ok(dto);
     }
 
