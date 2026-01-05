@@ -10,4 +10,5 @@ import java.util.List;
 public class TeamMembersResponseDto {
     private List<TeamMemberDto> teamMembers;
     private long totalRecords;
+    private String role;
 }

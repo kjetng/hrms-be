@@ -44,20 +44,29 @@ public class TeamMemberViewService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing or invalid auth token");
         }
 
-        // Fetch requester's own details to get their manager ID
-        org.httt2.hrms.common.external.employee.dto.EmployeeResponse requesterDetails = employeeRepository
-                .getOneById(requesterId);
+        String userRole = extractRoleFromRequest();
+        List<ManagerEmployeeResponse> reports;
 
-        // If requester not found or has no manager, return empty list
-        if (requesterDetails == null || requesterDetails.managerId() == null) {
-            return TeamMembersResponseDto.builder()
-                    .teamMembers(List.of())
-                    .totalRecords(0)
-                    .build();
+        // If user is a MANAGER, show their direct reports
+        if ("MANAGER".equals(userRole)) {
+            reports = employeeRepository.getDirectReports(requesterId);
+        } else {
+            // For non-managers, show peers (teammates with same manager)
+            org.httt2.hrms.common.external.employee.dto.EmployeeResponse requesterDetails = employeeRepository
+                    .getOneById(requesterId);
+
+            // If requester not found or has no manager, return empty list
+            if (requesterDetails == null || requesterDetails.managerId() == null) {
+                return TeamMembersResponseDto.builder()
+                        .teamMembers(List.of())
+                        .totalRecords(0)
+                        .role(userRole)
+                        .build();
+            }
+
+            // Fetch all employees under the requester's manager (peers)
+            reports = employeeRepository.getDirectReports(requesterDetails.managerId());
         }
-
-        // Fetch all employees under the requester's manager (peers)
-        List<ManagerEmployeeResponse> reports = employeeRepository.getDirectReports(requesterDetails.managerId());
 
         List<ManagerEmployeeResponse> filtered = reports.stream()
                 .filter(r -> r.id() != null && !r.id().equals(requesterId))
@@ -88,6 +97,7 @@ public class TeamMemberViewService {
         return TeamMembersResponseDto.builder()
                 .teamMembers(members)
                 .totalRecords(totalRecords)
+                .role(userRole)
                 .build();
     }
 
@@ -106,6 +116,17 @@ public class TeamMemberViewService {
             Object principal = authentication.getPrincipal();
             if (principal instanceof UserDetails userDetails && userDetails instanceof User user) {
                 return user.getEmpId();
+            }
+        }
+        return null;
+    }
+
+    private String extractRoleFromRequest() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            Object principal = authentication.getPrincipal();
+            if (principal instanceof UserDetails userDetails && userDetails instanceof User user) {
+                return user.getRole() != null ? user.getRole().name() : null;
             }
         }
         return null;

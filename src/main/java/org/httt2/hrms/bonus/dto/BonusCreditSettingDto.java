@@ -3,6 +3,7 @@ package org.httt2.hrms.bonus.dto;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import org.httt2.hrms.bonus.validation.annotation.MultipleOf;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -25,4 +26,6 @@ public class BonusCreditSettingDto {
     @Min(value = 1, message = "Date must be between 1 and 28")
     @Max(value = 28, message = "Date must be between 1 and 28")
     private Integer date;
+
+    private String role;
 }

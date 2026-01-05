@@ -44,6 +44,26 @@ public class BonusPointViewService {
     private final JwtService jwtService;
 
     @Transactional(readOnly = false)
+    public BonusPointBalanceDto getMyBalance() {
+        Long empId = extractEmpIdFromRequest();
+        if (empId == null) {
+            throw new IllegalStateException("User not authenticated or empId not found in token");
+        }
+
+        BonusPointAccount account = accountRepo.findById(empId)
+                .orElseGet(() -> accountRepo.save(
+                        BonusPointAccount.builder()
+                                .empId(empId)
+                                .bonusPoint(0)
+                                .build()));
+
+        BonusPointBalanceDto dto = new BonusPointBalanceDto();
+        dto.setBonusPoint(account.getBonusPoint());
+        dto.setRole(extractRoleFromRequest());
+        return dto;
+    }
+
+    @Transactional(readOnly = false)
     public BonusPointViewDto getMyBonusPointView(
             BonusPointViewQueryDto query) {
         Long empId = extractEmpIdFromRequest();
@@ -174,6 +194,7 @@ public class BonusPointViewService {
         }
         dto.setPage(page);
         dto.setSize(size);
+        dto.setRole(extractRoleFromRequest());
         return dto;
     }
 
@@ -323,6 +344,17 @@ public class BonusPointViewService {
             }
         }
 
+        return null;
+    }
+
+    private String extractRoleFromRequest() {
+        // Try to get from SecurityContext
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof UserDetails userDetails) {
+            if (userDetails instanceof org.httt2.hrms.auth.entity.User user) {
+                return user.getRole() != null ? user.getRole().name() : null;
+            }
+        }
         return null;
     }
 }

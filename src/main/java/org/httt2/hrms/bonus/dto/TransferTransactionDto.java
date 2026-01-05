@@ -14,6 +14,7 @@ public class TransferTransactionDto {
     private String note;
     private TransferType type;
     private LocalDateTime createdAt;
+    private String role;
 
     public static TransferTransactionDto from(TransferTransaction entity) {
         TransferTransactionDto dto = new TransferTransactionDto();
