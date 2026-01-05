@@ -2,6 +2,7 @@ package org.httt2.hrms.bonus.service;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.httt2.hrms.auth.config.JwtService;
 import org.httt2.hrms.auth.entity.User;
 import org.httt2.hrms.bonus.dto.TeamMemberDto;
@@ -24,6 +25,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class TeamMemberViewService {
 
     private static final String ACTIVE_STATUS = "ACTIVE";
@@ -46,17 +48,27 @@ public class TeamMemberViewService {
 
         String userRole = extractRoleFromRequest();
         List<ManagerEmployeeResponse> reports;
+        Long managerId = null;
+
+        // Get requester details to find their manager
+        org.httt2.hrms.common.external.employee.dto.EmployeeResponse requesterDetails = employeeRepository
+                .getOneById(requesterId);
+
+        log.debug("Requester ID: {}, Details: {}", requesterId, requesterDetails);
 
         // If user is a MANAGER, show their direct reports
         if ("MANAGER".equals(userRole)) {
             reports = employeeRepository.getDirectReports(requesterId);
+            // For managers, their manager is their own managerId
+            if (requesterDetails != null) {
+                managerId = requesterDetails.managerId();
+            }
+            log.debug("MANAGER role - Reports count: {}, Manager ID: {}", reports.size(), managerId);
         } else {
             // For non-managers, show peers (teammates with same manager)
-            org.httt2.hrms.common.external.employee.dto.EmployeeResponse requesterDetails = employeeRepository
-                    .getOneById(requesterId);
-
             // If requester not found or has no manager, return empty list
             if (requesterDetails == null || requesterDetails.managerId() == null) {
+                log.debug("Non-manager with no manager ID, returning empty list");
                 return TeamMembersResponseDto.builder()
                         .teamMembers(List.of())
                         .totalRecords(0)
@@ -64,8 +76,10 @@ public class TeamMemberViewService {
                         .build();
             }
 
+            managerId = requesterDetails.managerId();
             // Fetch all employees under the requester's manager (peers)
-            reports = employeeRepository.getDirectReports(requesterDetails.managerId());
+            reports = employeeRepository.getDirectReports(managerId);
+            log.debug("Non-MANAGER role - Manager ID: {}, Peers count: {}", managerId, reports.size());
         }
 
         List<ManagerEmployeeResponse> filtered = reports.stream()
@@ -76,13 +90,42 @@ public class TeamMemberViewService {
                         .thenComparing(ManagerEmployeeResponse::id))
                 .toList();
 
-        long totalRecords = filtered.size();
-        int fromIndex = (pageNumber - 1) * pageSize;
-        int toIndex = Math.min(fromIndex + pageSize, filtered.size());
-        List<ManagerEmployeeResponse> pageSlice = fromIndex >= filtered.size()
-                ? List.of()
-                : filtered.subList(fromIndex, toIndex);
+        // Add manager to the list if they exist and are active
+        List<ManagerEmployeeResponse> allMembers = new java.util.ArrayList<>(filtered);
+        if (managerId != null) {
+            log.debug("Fetching manager with ID: {}", managerId);
+            org.httt2.hrms.common.external.employee.dto.EmployeeResponse managerDetails = employeeRepository
+                    .getOneById(managerId);
+            log.debug("Manager details: {}", managerDetails);
+            if (managerDetails != null && managerDetails.status() != null
+                    && managerDetails.status().equalsIgnoreCase(ACTIVE_STATUS)) {
+                // Convert to ManagerEmployeeResponse and add to the beginning of the list
+                ManagerEmployeeResponse managerResponse = new ManagerEmployeeResponse(
+                        managerDetails.id(),
+                        managerDetails.fullName(),
+                        managerDetails.email(),
+                        null, // positionId
+                        null, // departmentId
+                        managerDetails.status());
+                allMembers.add(0, managerResponse);
+                log.debug("Added manager to team list: {}", managerDetails.fullName());
+            } else {
+                log.debug("Manager not added. Details null: {}, Status: {}",
+                        managerDetails == null,
+                        managerDetails != null ? managerDetails.status() : "N/A");
+            }
+        } else {
+            log.debug("Manager ID is null, not adding manager to team list");
+        }
 
+        long totalRecords = allMembers.size();
+        int fromIndex = (pageNumber - 1) * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize, allMembers.size());
+        List<ManagerEmployeeResponse> pageSlice = fromIndex >= allMembers.size()
+                ? List.of()
+                : allMembers.subList(fromIndex, toIndex);
+
+        Long finalManagerId = managerId;
         List<TeamMemberDto> members = pageSlice.stream()
                 .map(r -> TeamMemberDto.builder()
                         .id(r.id())
@@ -91,6 +134,7 @@ public class TeamMemberViewService {
                         .position(null)
                         .department(null)
                         .avatar(null)
+                        .isManager(r.id().equals(finalManagerId))
                         .build())
                 .toList();
 

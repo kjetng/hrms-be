@@ -12,4 +12,5 @@ public class TeamMemberDto {
     private String position;
     private String department;
     private String avatar;
+    private Boolean isManager;
 }
