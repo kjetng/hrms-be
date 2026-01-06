@@ -81,6 +81,9 @@ application:
     employee-service:
       base-url: ${EMPLOYEE_SERVICE_BASE_URL:http://localhost:5188}
       token: ${EMPLOYEE_SERVICE_TOKEN:}
+    bankaccount-service:
+      base-url: ${BANKACCOUNT_SERVICE_BASE_URL:http://localhost:5188}
+      token: ${BANKACCOUNT_SERVICE_TOKEN:}
 
 rabbitmq:
   queue:
