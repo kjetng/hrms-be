@@ -20,7 +20,7 @@ public class TransferTransaction {
   private String note;
 
   @Enumerated(EnumType.STRING)
-  @Column(name = "transfer_type")
+  @Column(name = "transfer_type") //REDEEM,TRANSFER,DEDUCT,AWARD,MONTHLY
   private TransferType type;
 
   @Builder.Default

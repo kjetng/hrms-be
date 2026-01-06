@@ -8,5 +8,9 @@ public record EmployeeResponse(
         String fullName,
         String firstName,
         String lastName,
-        String email) {
+        String email,
+        Long managerId,
+        String status,
+        String departmentName,
+        String positionTitle) {
 }

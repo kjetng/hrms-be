@@ -44,6 +44,26 @@ public class BonusPointViewService {
     private final JwtService jwtService;
 
     @Transactional(readOnly = false)
+    public BonusPointBalanceDto getMyBalance() {
+        Long empId = extractEmpIdFromRequest();
+        if (empId == null) {
+            throw new IllegalStateException("User not authenticated or empId not found in token");
+        }
+
+        BonusPointAccount account = accountRepo.findById(empId)
+                .orElseGet(() -> accountRepo.save(
+                        BonusPointAccount.builder()
+                                .empId(empId)
+                                .bonusPoint(0)
+                                .build()));
+
+        BonusPointBalanceDto dto = new BonusPointBalanceDto();
+        dto.setBonusPoint(account.getBonusPoint());
+        dto.setRole(extractRoleFromRequest());
+        return dto;
+    }
+
+    @Transactional(readOnly = false)
     public BonusPointViewDto getMyBonusPointView(
             BonusPointViewQueryDto query) {
         Long empId = extractEmpIdFromRequest();
@@ -174,6 +194,7 @@ public class BonusPointViewService {
         }
         dto.setPage(page);
         dto.setSize(size);
+        dto.setRole(extractRoleFromRequest());
         return dto;
     }
 
@@ -198,6 +219,7 @@ public class BonusPointViewService {
         }
 
         // 🎁 AWARD — prefer explicit DB type, fall back to sender==SYSTEM
+        // AWARD means points are given FROM system TO user
         if (t.getType() == TransferType.AWARD || (t.getType() == null && senderId.equals(SYSTEM_EMP_ID))) {
             return HistoryItemDto.builder()
                     .id(t.getTransferId())
@@ -209,6 +231,7 @@ public class BonusPointViewService {
         }
 
         // ⚠️ DEDUCT — prefer explicit DB type, fall back to receiver==SYSTEM
+        // DEDUCT means points are taken FROM user TO system
         if (t.getType() == TransferType.DEDUCT || (t.getType() == null && receiverId.equals(SYSTEM_EMP_ID))) {
             return HistoryItemDto.builder()
                     .id(t.getTransferId())
@@ -323,6 +346,17 @@ public class BonusPointViewService {
             }
         }
 
+        return null;
+    }
+
+    private String extractRoleFromRequest() {
+        // Try to get from SecurityContext
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof UserDetails userDetails) {
+            if (userDetails instanceof org.httt2.hrms.auth.entity.User user) {
+                return user.getRole() != null ? user.getRole().name() : null;
+            }
+        }
         return null;
     }
 }

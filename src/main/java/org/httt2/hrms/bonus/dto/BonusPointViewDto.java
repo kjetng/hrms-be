@@ -10,6 +10,7 @@ public class BonusPointViewDto {
 
     private Long empId;
     private Integer currentBalance;
+    private String role;
 
     private Integer totalRedeemed;
     private Integer totalSent;
