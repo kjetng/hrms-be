@@ -75,4 +75,5 @@ flyway {
     locations = ['classpath:db/migration']
     baselineOnMigrate = true
     cleanDisabled = false
+    outOfOrder = true
 }
