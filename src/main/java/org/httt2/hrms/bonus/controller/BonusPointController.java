@@ -4,9 +4,12 @@ import lombok.RequiredArgsConstructor;
 import jakarta.validation.Valid;
 import org.httt2.hrms.bonus.dto.BonusPointBalanceDto;
 import org.httt2.hrms.bonus.dto.BonusPointViewDto;
+import org.httt2.hrms.bonus.dto.RedeemRequestDto;
+import org.httt2.hrms.bonus.dto.RedemptionTransactionDto;
 import org.httt2.hrms.bonus.dto.TransferRequestDto;
 import org.httt2.hrms.bonus.dto.TransferTransactionDto;
 import org.httt2.hrms.bonus.dto.TeamMembersResponseDto;
+import org.httt2.hrms.bonus.service.BonusPointRedemptionService;
 import org.httt2.hrms.bonus.service.BonusPointTransferService;
 import org.httt2.hrms.bonus.dto.BonusPointViewQueryDto;
 import org.httt2.hrms.bonus.service.BonusPointViewService;
@@ -23,6 +26,7 @@ public class BonusPointController {
     private final BonusPointViewService viewService;
     private final TeamMemberViewService teamMemberViewService;
     private final BonusPointTransferService transferService;
+    private final BonusPointRedemptionService redemptionService;
 
     @GetMapping("/balance")
     public ResponseEntity<BonusPointBalanceDto> getBalance() {
@@ -47,5 +51,11 @@ public class BonusPointController {
     public ResponseEntity<TransferTransactionDto> transferPoints(
             @Valid @RequestBody TransferRequestDto request) {
         return ResponseEntity.ok(transferService.transfer(request));
+    }
+
+    @PostMapping("/redeem")
+    public ResponseEntity<RedemptionTransactionDto> redeemPoints(
+            @Valid @RequestBody RedeemRequestDto request) {
+        return ResponseEntity.ok(redemptionService.redeem(request));
     }
 }
