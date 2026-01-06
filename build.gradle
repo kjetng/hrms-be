@@ -74,4 +74,5 @@ flyway {
     schemas = ['public']
     locations = ['classpath:db/migration']
     baselineOnMigrate = true
+    cleanDisabled = false
 }

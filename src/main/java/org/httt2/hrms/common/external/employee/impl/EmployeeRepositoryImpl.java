@@ -2,6 +2,8 @@ package org.httt2.hrms.common.external.employee.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.httt2.hrms.common.external.employee.EmployeeRepository;
 import org.httt2.hrms.common.external.employee.dto.EmployeeResponse;
 import org.httt2.hrms.common.external.employee.dto.ManagerEmployeeResponse;
@@ -22,11 +24,31 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.List;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
 @Slf4j
+@RequiredArgsConstructor
+@Slf4j
 public class EmployeeRepositoryImpl implements EmployeeRepository {
+
+  private final RestTemplate restTemplate;
+
+  @Value("${application.external.employee-service.base-url}")
+  private String baseUrl;
+
+  @Value("${application.external.employee-service.token:}")
+  private String token;
+
 
   private final RestTemplate restTemplate;
 
