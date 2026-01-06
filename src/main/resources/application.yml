@@ -77,6 +77,10 @@ application:
   onboarding:
     base-url: ${ONBOARDING_BASE_URL:http://localhost:5173}
     token-expiration: ${ONBOARDING_TOKEN_EXPIRATION:604800000} # 7 days in milliseconds
+  external:
+    employee-service:
+      base-url: ${EMPLOYEE_SERVICE_BASE_URL:http://localhost:5188}
+      token: ${EMPLOYEE_SERVICE_TOKEN:}
 
 rabbitmq:
   queue:
