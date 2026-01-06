@@ -6,6 +6,18 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      # Increase pool size to handle SSE connections + regular API requests
+      maximum-pool-size: 30
+      minimum-idle: 5
+      # Connection timeout (30 seconds)
+      connection-timeout: 30000
+      # Idle timeout (10 minutes)
+      idle-timeout: 600000
+      # Max lifetime (30 minutes)
+      max-lifetime: 1800000
+      # Leak detection threshold (60 seconds)
+      leak-detection-threshold: 60000
   jpa:
     hibernate:
       ddl-auto: update
@@ -73,7 +85,9 @@ application:
 rabbitmq:
   queue:
     send-email: sendEmail
+    notification: notification
   exchange:
     name: ${RABBITMQ_EXCHANGE:hrms.exchange}
   routing-key:
     send-email: ${RABBITMQ_ROUTING_KEY_SEND_EMAIL:send.email}
+    notification: ${RABBITMQ_ROUTING_KEY_NOTIFICATION:notification}
