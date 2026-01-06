@@ -21,9 +21,20 @@ public class RabbitMQConfig {
     @Value("${rabbitmq.routing-key.send-email}")
     private String sendEmailRoutingKey;
 
+    @Value("${rabbitmq.queue.notification}")
+    private String notificationQueue;
+
+    @Value("${rabbitmq.routing-key.notification}")
+    private String notificationRoutingKey;
+
     @Bean
     public Queue sendEmailQueue() {
         return QueueBuilder.durable(sendEmailQueue).build();
+    }
+
+    @Bean
+    public Queue notificationQueue() {
+        return QueueBuilder.durable(notificationQueue).build();
     }
 
     @Bean
@@ -37,6 +48,14 @@ public class RabbitMQConfig {
                 .bind(sendEmailQueue)
                 .to(exchange)
                 .with(sendEmailRoutingKey);
+    }
+
+    @Bean
+    public Binding notificationBinding(Queue notificationQueue, TopicExchange exchange) {
+        return BindingBuilder
+                .bind(notificationQueue)
+                .to(exchange)
+                .with(notificationRoutingKey);
     }
 
     @Bean
