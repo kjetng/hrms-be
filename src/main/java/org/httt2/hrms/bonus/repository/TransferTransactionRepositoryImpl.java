@@ -17,8 +17,6 @@ import java.util.List;
 public class TransferTransactionRepositoryImpl
         implements TransferTransactionRepositoryCustom {
 
-    private static final Long SYSTEM_EMP_ID = -1L;
-
     @PersistenceContext
     private EntityManager em;
 
@@ -76,16 +74,10 @@ public class TransferTransactionRepositoryImpl
                         typePreds.add(cb.equal(root.get("type"), TransferType.MONTHLY));
                         break;
                     case AWARD:
-                        typePreds.add(cb.or(
-                                cb.equal(root.get("type"), TransferType.AWARD),
-                                cb.and(cb.isNull(root.get("type")), cb.equal(sender.get("empId"), SYSTEM_EMP_ID))
-                        ));
+                        typePreds.add(cb.equal(root.get("type"), TransferType.AWARD));
                         break;
                     case DEDUCT:
-                        typePreds.add(cb.or(
-                                cb.equal(root.get("type"), TransferType.DEDUCT),
-                                cb.and(cb.isNull(root.get("type")), cb.equal(receiver.get("empId"), SYSTEM_EMP_ID))
-                        ));
+                        typePreds.add(cb.equal(root.get("type"), TransferType.DEDUCT));
                         break;
                     case TRANSFER_SENT:
                         typePreds.add(cb.and(
@@ -165,16 +157,10 @@ public class TransferTransactionRepositoryImpl
                         typePreds.add(cb.equal(root.get("type"), TransferType.MONTHLY));
                         break;
                     case AWARD:
-                        typePreds.add(cb.or(
-                                cb.equal(root.get("type"), TransferType.AWARD),
-                                cb.and(cb.isNull(root.get("type")), cb.equal(sender.get("empId"), SYSTEM_EMP_ID))
-                        ));
+                        typePreds.add(cb.equal(root.get("type"), TransferType.AWARD));
                         break;
                     case DEDUCT:
-                        typePreds.add(cb.or(
-                                cb.equal(root.get("type"), TransferType.DEDUCT),
-                                cb.and(cb.isNull(root.get("type")), cb.equal(receiver.get("empId"), SYSTEM_EMP_ID))
-                        ));
+                        typePreds.add(cb.equal(root.get("type"), TransferType.DEDUCT));
                         break;
                     case TRANSFER_SENT:
                         typePreds.add(cb.and(
