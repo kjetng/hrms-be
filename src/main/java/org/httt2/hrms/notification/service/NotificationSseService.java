@@ -157,12 +157,14 @@ public class NotificationSseService {
 
     /**
      * Periodic cleanup task to remove stale SSE connections.
-     * Runs every 5 minutes to clean up any connections that weren't properly
-     * closed.
-     * This helps prevent resource leaks if the frontend doesn't properly close
-     * connections.
+     * Runs every 15 minutes as a safety net to clean up any connections that
+     * weren't properly closed due to network issues, browser crashes, or other
+     * edge cases.
+     * 
+     * Note: Most connections are cleaned up automatically via onCompletion(),
+     * onTimeout(), and onError() callbacks. This is a defensive measure.
      */
-    @Scheduled(fixedRate = 300000) // Every 5 minutes
+    @Scheduled(fixedRate = 900000) // Every 15 minutes (reduced frequency since we have better cleanup)
     public void cleanupStaleConnections() {
         int initialSize = emitters.size();
         if (initialSize == 0) {

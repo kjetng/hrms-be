@@ -1,7 +1,9 @@
 package org.httt2.hrms.notification.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.httt2.hrms.auth.config.JwtService;
 import org.httt2.hrms.auth.repository.UserRepository;
 import org.httt2.hrms.notification.dto.CreateNotificationRequest;
 import org.httt2.hrms.notification.dto.NotificationListResponse;
@@ -21,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.httt2.hrms.notification.service.NotificationSseService;
 
@@ -35,6 +39,7 @@ public class NotificationController {
     private final NotificationService notificationService;
     private final NotificationSseService notificationSseService;
     private final UserRepository userRepository;
+    private final JwtService jwtService;
 
     /**
      * Send a notification to an employee.
@@ -141,8 +146,9 @@ public class NotificationController {
 
     /**
      * Helper method to get the current authenticated user's empId.
-     * Spring Data JPA repositories automatically manage transactions and release
-     * connections.
+     * Extracts empId from JWT token to avoid unnecessary database queries,
+     * especially important for long-lived SSE connections to prevent connection
+     * leaks.
      */
     private Long getCurrentUserEmpId() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -150,6 +156,29 @@ public class NotificationController {
             throw new UsernameNotFoundException("No authenticated user found");
         }
 
+        // Try to extract empId from JWT token first (no database query)
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes != null) {
+            HttpServletRequest request = attributes.getRequest();
+            Long empId = jwtService.extractEmpIdFromRequest(request);
+            if (empId != null) {
+                return empId;
+            }
+
+            // For SSE endpoints, also check query parameter
+            if (request.getRequestURI().contains("/notifications/stream")) {
+                String token = request.getParameter("token");
+                if (token != null) {
+                    empId = jwtService.extractEmpIdFromToken(token);
+                    if (empId != null) {
+                        return empId;
+                    }
+                }
+            }
+        }
+
+        // Fallback to database query if JWT extraction fails (shouldn't happen in
+        // normal flow)
         var email = authentication.getName();
         var user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
