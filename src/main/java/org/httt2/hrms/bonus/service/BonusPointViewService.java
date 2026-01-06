@@ -218,7 +218,8 @@ public class BonusPointViewService {
         }
 
         // 🎁 AWARD — manager awards points to employee
-        // AWARD means points are given FROM manager TO employee (only employee balance changes)
+        // AWARD means points are given FROM manager TO employee (only employee balance
+        // changes)
         if (t.getType() == TransferType.AWARD) {
             return HistoryItemDto.builder()
                     .id(t.getTransferId())

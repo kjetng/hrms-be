@@ -50,11 +50,13 @@ public class BonusPointTransferService {
         Long actualReceiverId;
 
         if (transferType == TransferType.AWARD) {
-            // AWARD: Manager awards points to employee (manager as sender, only employee balance changes)
+            // AWARD: Manager awards points to employee (manager as sender, only employee
+            // balance changes)
             actualSenderId = senderId; // Manager's empId
             actualReceiverId = request.getReceiverId();
         } else if (transferType == TransferType.DEDUCT) {
-            // DEDUCT: Manager deducts points from employee (manager as receiver, only employee balance changes)
+            // DEDUCT: Manager deducts points from employee (manager as receiver, only
+            // employee balance changes)
             actualSenderId = request.getReceiverId();
             actualReceiverId = senderId; // Manager's empId
         } else {
@@ -66,7 +68,8 @@ public class BonusPointTransferService {
         BonusPointAccount sender = null;
         BonusPointAccount receiver = null;
 
-        // For AWARD/DEDUCT, load manager account for record but don't modify their balance
+        // For AWARD/DEDUCT, load manager account for record but don't modify their
+        // balance
         if (transferType == TransferType.AWARD) {
             sender = accountRepo.findById(actualSenderId)
                     .orElseThrow(() -> new IllegalStateException("Manager account not found"));
