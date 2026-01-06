@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,12 +38,12 @@ public class NotificationController {
 
     /**
      * Send a notification to an employee.
-     * This endpoint publishes the notification to RabbitMQ, making it available for both backends.
+     * This endpoint publishes the notification to RabbitMQ, making it available for
+     * both backends.
      */
     @PostMapping
     public ResponseEntity<Void> sendNotification(
-            @RequestBody @Valid CreateNotificationRequest request
-    ) {
+            @RequestBody @Valid CreateNotificationRequest request) {
         notificationService.sendNotification(request);
         return ResponseEntity.ok().build();
     }
@@ -53,8 +54,7 @@ public class NotificationController {
     @GetMapping
     public ResponseEntity<NotificationListResponse> getNotifications(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
-    ) {
+            @RequestParam(defaultValue = "20") int size) {
         Long empId = getCurrentUserEmpId();
         Page<NotificationResponse> notificationsPage = notificationService.getNotificationsByEmpId(empId, page, size);
         Long unreadCount = notificationService.getUnreadCount(empId);
@@ -113,7 +113,8 @@ public class NotificationController {
 
     /**
      * SSE endpoint for real-time notifications.
-     * Establishes a Server-Sent Events connection to receive notifications in real-time.
+     * Establishes a Server-Sent Events connection to receive notifications in
+     * real-time.
      * 
      * Event types:
      * - "connected": Initial connection confirmation
@@ -127,7 +128,21 @@ public class NotificationController {
     }
 
     /**
+     * Closes the SSE connection for the current authenticated user.
+     * This should be called when the user logs out or when the frontend wants to
+     * explicitly close the connection.
+     */
+    @DeleteMapping("/stream")
+    public ResponseEntity<Void> closeStream() {
+        Long empId = getCurrentUserEmpId();
+        notificationSseService.closeConnection(empId);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
      * Helper method to get the current authenticated user's empId.
+     * Spring Data JPA repositories automatically manage transactions and release
+     * connections.
      */
     private Long getCurrentUserEmpId() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -146,4 +161,3 @@ public class NotificationController {
         return user.getEmpId();
     }
 }
-

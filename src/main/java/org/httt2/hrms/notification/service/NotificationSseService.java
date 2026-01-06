@@ -2,10 +2,12 @@ package org.httt2.hrms.notification.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.httt2.hrms.notification.dto.NotificationResponse;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -36,8 +38,9 @@ public class NotificationSseService {
             }
         }
 
-        // Create new connection with 30 minute timeout
-        SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
+        // Create new connection with 10 minute timeout (reduced from 30 to prevent
+        // resource leaks)
+        SseEmitter emitter = new SseEmitter(10 * 60 * 1000L);
         emitters.put(empId, emitter);
 
         // Handle completion and timeout
@@ -84,7 +87,7 @@ public class NotificationSseService {
     /**
      * Sends a notification to a specific employee via SSE.
      *
-     * @param empId the employee ID
+     * @param empId        the employee ID
      * @param notification the notification to send
      */
     public void sendNotification(Long empId, NotificationResponse notification) {
@@ -151,5 +154,59 @@ public class NotificationSseService {
             }
         }
     }
-}
 
+    /**
+     * Periodic cleanup task to remove stale SSE connections.
+     * Runs every 5 minutes to clean up any connections that weren't properly
+     * closed.
+     * This helps prevent resource leaks if the frontend doesn't properly close
+     * connections.
+     */
+    @Scheduled(fixedRate = 300000) // Every 5 minutes
+    public void cleanupStaleConnections() {
+        int initialSize = emitters.size();
+        if (initialSize == 0) {
+            return; // No connections to clean up
+        }
+
+        Iterator<Map.Entry<Long, SseEmitter>> iterator = emitters.entrySet().iterator();
+        int removed = 0;
+
+        while (iterator.hasNext()) {
+            Map.Entry<Long, SseEmitter> entry = iterator.next();
+            SseEmitter emitter = entry.getValue();
+
+            // Check if emitter is already completed or has errors by trying to send a
+            // heartbeat
+            try {
+                // Try to send a heartbeat to check if connection is still alive
+                // If it throws an exception, the connection is dead
+                emitter.send(SseEmitter.event().name("heartbeat").data("ping"));
+            } catch (Exception e) {
+                // Connection is dead, remove it
+                log.debug("Removing stale SSE connection for empId: {}", entry.getKey());
+                iterator.remove();
+                removed++;
+                try {
+                    emitter.completeWithError(e);
+                } catch (Exception ex) {
+                    // Ignore errors during cleanup - connection is already dead
+                }
+            }
+        }
+
+        if (removed > 0) {
+            log.info("Cleaned up {} stale SSE connection(s). Active connections: {}", removed, emitters.size());
+        }
+    }
+
+    /**
+     * Gets the number of active SSE connections.
+     * Useful for monitoring and debugging.
+     *
+     * @return the number of active connections
+     */
+    public int getActiveConnectionCount() {
+        return emitters.size();
+    }
+}
