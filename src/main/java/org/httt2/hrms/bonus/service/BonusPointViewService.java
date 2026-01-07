@@ -218,29 +218,32 @@ public class BonusPointViewService {
         }
 
         // 🎁 AWARD — manager awards points to employee
-        // AWARD means points are given FROM manager TO employee (only employee balance
-        // changes)
+        // Show counterparty based on perspective: if I'm manager, show employee; if I'm
+        // employee, show manager
         if (t.getType() == TransferType.AWARD) {
+            Long counterpartyId = senderId.equals(empId) ? receiverId : senderId;
             return HistoryItemDto.builder()
                     .id(t.getTransferId())
                     .type(HistoryType.AWARD)
                     .points(t.getNumberPoint())
-                    .counterpartyId(receiverId)
-                    .counterpartyName(resolveEmployeeName(receiverId, employeeNameCache))
+                    .counterpartyId(counterpartyId)
+                    .counterpartyName(resolveEmployeeName(counterpartyId, employeeNameCache))
                     .note(t.getNote())
                     .createdAt(t.getCreatedAt())
                     .build();
         }
 
         // ⚠️ DEDUCT — manager deducts points from employee
-        // DEDUCT means points are taken FROM employee (only employee balance changes)
+        // Show counterparty based on perspective: if I'm employee, show manager; if I'm
+        // manager, show employee
         if (t.getType() == TransferType.DEDUCT) {
+            Long counterpartyId = senderId.equals(empId) ? receiverId : senderId;
             return HistoryItemDto.builder()
                     .id(t.getTransferId())
                     .type(HistoryType.DEDUCT)
                     .points(t.getNumberPoint())
-                    .counterpartyId(senderId)
-                    .counterpartyName(resolveEmployeeName(senderId, employeeNameCache))
+                    .counterpartyId(counterpartyId)
+                    .counterpartyName(resolveEmployeeName(counterpartyId, employeeNameCache))
                     .note(t.getNote())
                     .createdAt(t.getCreatedAt())
                     .build();
