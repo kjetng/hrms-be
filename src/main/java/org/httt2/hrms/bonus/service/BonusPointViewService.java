@@ -20,6 +20,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -196,6 +198,41 @@ public class BonusPointViewService {
         dto.setSize(size);
         dto.setRole(extractRoleFromRequest());
         return dto;
+    }
+    
+    /**
+     * Get bonus balance details for the current employee.
+     * Used for employee dashboard stats.
+     */
+    @Transactional(readOnly = false)
+    public BonusBalanceResponse getBonusBalance() {
+        Long empId = extractEmpIdFromRequest();
+        if (empId == null) {
+            throw new IllegalStateException("User not authenticated or empId not found in token");
+        }
+        
+        log.info("Fetching bonus balance for empId: {}", empId);
+        
+        // Get or create account
+        BonusPointAccount account = accountRepo.findById(empId)
+                .orElseGet(() -> accountRepo.save(
+                        BonusPointAccount.builder()
+                                .empId(empId)
+                                .bonusPoint(0)
+                                .build()));
+        
+        // Calculate total redeemed
+        Integer totalRedeemed = redemptionRepo.sumConvertedPointByEmpId(empId);
+        
+        // Calculate total received (points received as receiver in transfer transactions)
+        Integer totalReceived = transferRepo.sumPointsReceivedByEmpId(empId);
+        
+        return BonusBalanceResponse.builder()
+                .empId(empId)
+                .currentBalance(account.getBonusPoint() != null ? account.getBonusPoint() : 0)
+                .totalRedeemed(totalRedeemed != null ? totalRedeemed : 0)
+                .totalReceived(totalReceived != null ? totalReceived : 0)
+                .build();
     }
 
     // ================= HELPERS =================

@@ -4,8 +4,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.httt2.hrms.activity.entity.Campaign;
 import org.httt2.hrms.activity.repository.CampaignRepository;
+import org.httt2.hrms.activity.repository.EmployeeActivityRepository;
 import org.springframework.stereotype.Service;
 import org.httt2.hrms.activity.dto.CampaignCreateRequest;
+import org.httt2.hrms.activity.dto.CampaignStatsResponse;
+import org.httt2.hrms.activity.dto.CampaignWithStatsResponse;
 
 import org.httt2.hrms.auth.repository.UserRepository;
 
@@ -25,6 +28,7 @@ public class CampaignService {
 
     private final CampaignRepository campaignRepository;
     private final CampaignParticipantRepository participantRepository;
+    private final EmployeeActivityRepository activityRepository;
     private final UserRepository userRepository;
 
     public List<Campaign> getAllCampaigns() {
@@ -203,5 +207,74 @@ public class CampaignService {
         return participants.stream()
                 .map(CampaignParticipant::getCampaign)
                 .toList();
+    }
+    
+    /**
+     * Get campaign statistics for admin dashboard.
+     * Returns counts of campaigns by status.
+     */
+    public CampaignStatsResponse getCampaignStats() {
+        log.info("Fetching campaign statistics for dashboard");
+        
+        long total = campaignRepository.count();
+        long active = campaignRepository.countByStatus("active");
+        long completed = campaignRepository.countByStatus("completed");
+        long draft = campaignRepository.countByStatus("draft");
+        
+        return CampaignStatsResponse.builder()
+                .totalCampaigns(total)
+                .activeCampaigns(active)
+                .completedCampaigns(completed)
+                .draftCampaigns(draft)
+                .build();
+    }
+    
+    /**
+     * Get all campaigns with participation statistics.
+     * Enhanced version of getAllCampaigns with participants, totalDistance, and pendingSubmissions.
+     */
+    public List<CampaignWithStatsResponse> getAllCampaignsWithStats() {
+        log.info("Fetching all campaigns with participation stats");
+        
+        List<Campaign> campaigns = campaignRepository.findAllByOrderByCreatedAtDesc();
+        
+        return campaigns.stream()
+                .map(this::mapToCampaignWithStats)
+                .toList();
+    }
+    
+    /**
+     * Map a Campaign entity to CampaignWithStatsResponse with statistics.
+     */
+    private CampaignWithStatsResponse mapToCampaignWithStats(Campaign campaign) {
+        Long campaignId = campaign.getCampaignId();
+        
+        // Count participants
+        long participants = participantRepository.countByCampaignId(campaignId);
+        
+        // Count pending submissions
+        long pendingSubmissions = activityRepository.countByCampaign_CampaignIdAndStatus(campaignId, "pending");
+        
+        // For totalDistance, we would need to parse the metrics JSON field
+        // For MVP, we return 0.0 - this can be enhanced later
+        double totalDistance = 0.0;
+        
+        return CampaignWithStatsResponse.builder()
+                .campaignId(campaignId)
+                .campaignName(campaign.getCampaignName())
+                .campaignType(campaign.getCampaignType())
+                .primaryMetric(campaign.getPrimaryMetric())
+                .description(campaign.getDescription())
+                .startDate(campaign.getStartDate())
+                .endDate(campaign.getEndDate())
+                .startTime(campaign.getStartTime())
+                .endTime(campaign.getEndTime())
+                .status(campaign.getStatus())
+                .imageUrl(campaign.getImageUrl())
+                .createdAt(campaign.getCreatedAt())
+                .participants(participants)
+                .totalDistance(totalDistance)
+                .pendingSubmissions(pendingSubmissions)
+                .build();
     }
 }

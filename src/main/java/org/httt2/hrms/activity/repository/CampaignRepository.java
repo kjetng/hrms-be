@@ -31,4 +31,9 @@ public interface CampaignRepository extends JpaRepository<Campaign, Long> {
     WHERE cp.emp_id = :empId
     """, nativeQuery = true)
     List<Campaign> findByEmpId(@Param("empId") Long empId);
+    
+    /**
+     * Count campaigns by status for dashboard statistics.
+     */
+    long countByStatus(String status);
 }

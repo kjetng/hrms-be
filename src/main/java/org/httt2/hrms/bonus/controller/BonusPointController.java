@@ -2,6 +2,7 @@ package org.httt2.hrms.bonus.controller;
 
 import lombok.RequiredArgsConstructor;
 import jakarta.validation.Valid;
+import org.httt2.hrms.bonus.dto.BonusBalanceResponse;
 import org.httt2.hrms.bonus.dto.BonusPointBalanceDto;
 import org.httt2.hrms.bonus.dto.BonusPointViewDto;
 import org.httt2.hrms.bonus.dto.RedeemRequestDto;
@@ -31,6 +32,22 @@ public class BonusPointController {
     @GetMapping("/balance")
     public ResponseEntity<BonusPointBalanceDto> getBalance() {
         return ResponseEntity.ok(viewService.getMyBalance());
+    }
+    
+    /**
+     * Get detailed bonus balance for employee dashboard.
+     * Returns current balance, total redeemed, and total received.
+     */
+    @GetMapping("/balance/details")
+    public ResponseEntity<BonusBalanceResponse> getBonusBalanceDetails() {
+        try {
+            BonusBalanceResponse balance = viewService.getBonusBalance();
+            return ResponseEntity.ok(balance);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(401).build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @PostMapping("/view")

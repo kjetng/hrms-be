@@ -7,6 +7,8 @@ import org.httt2.hrms.auth.config.JwtService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.httt2.hrms.activity.dto.CampaignCreateRequest;
+import org.httt2.hrms.activity.dto.CampaignStatsResponse;
+import org.httt2.hrms.activity.dto.CampaignWithStatsResponse;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
@@ -154,5 +156,33 @@ public class CampaignController {
         Long empId = jwtService.extractEmpIdFromRequest(request);
 
         return ResponseEntity.ok(campaignService.getMyCampaigns(principal.getName(), empId));
+    }
+    
+    /**
+     * Get campaign statistics for admin dashboard.
+     * Returns counts of total, active, completed, and draft campaigns.
+     */
+    @GetMapping("/stats")
+    public ResponseEntity<CampaignStatsResponse> getCampaignStats() {
+        try {
+            CampaignStatsResponse stats = campaignService.getCampaignStats();
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    /**
+     * Get all campaigns with participation statistics.
+     * Enhanced version that includes participants count, total distance, and pending submissions.
+     */
+    @GetMapping("/with-stats")
+    public ResponseEntity<List<CampaignWithStatsResponse>> getAllCampaignsWithStats() {
+        try {
+            List<CampaignWithStatsResponse> campaigns = campaignService.getAllCampaignsWithStats();
+            return ResponseEntity.ok(campaigns);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }
