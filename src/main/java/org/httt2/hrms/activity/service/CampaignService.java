@@ -17,9 +17,23 @@ import org.httt2.hrms.activity.entity.EmployeeActivity;
 import org.httt2.hrms.activity.repository.EmployeeActivityRepository;
 import org.httt2.hrms.activity.dto.ActivitySubmissionRequest;
 
+import org.httt2.hrms.activity.dto.leaderboard.LeaderboardEntryDTO;
+import org.httt2.hrms.activity.dto.leaderboard.MyRankInfoDTO;
+import org.httt2.hrms.common.external.employee.EmployeeRepository;
+import org.httt2.hrms.common.external.employee.dto.EmployeeResponse;
+
+import org.httt2.hrms.activity.entity.ParticipantStatus;
+
+import java.util.Map;
+import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Comparator;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.List;
 import java.util.Optional;
-import java.time.LocalDateTime;
 import java.time.LocalDateTime;
 
 @Slf4j
@@ -32,6 +46,8 @@ public class CampaignService {
     private final UserRepository userRepository;
 
     private final EmployeeActivityRepository activityRepository;
+    private final EmployeeRepository employeeRepository;
+    private final ObjectMapper objectMapper;
 
     public List<Campaign> getAllCampaigns() {
         log.info("Fetching all campaigns");
@@ -53,8 +69,16 @@ public class CampaignService {
         return campaignRepository.findByCampaignId(campaignId);
     }
 
-    public List<Campaign> getActiveCampaigns() {
-        log.info("Fetching active campaigns");
+    // Sửa lại hàm này để nhận tham số empId (có thể null)
+    public List<Campaign> getActiveCampaigns(Long empId) {
+        if (empId != null) {
+            log.info("Fetching active campaigns available for empId: {}", empId);
+            // Dùng hàm query mới để loại bỏ cả JOINED và LEFT
+            return campaignRepository.findAvailableCampaignsForEmployee(empId);
+        }
+        
+        // Fallback cho trường hợp guest hoặc admin xem chung
+        log.info("Fetching all active campaigns (Guest mode)");
         return campaignRepository.findByStatusOrderByCreatedAtDesc("active");
     }
 
@@ -159,51 +183,91 @@ public class CampaignService {
 
     @Transactional
     public void registerForCampaign(Long campaignId, String userEmail, Long empId) {
-        // 1. Tìm Campaign & Validate
+        // 1. Tìm Campaign
         Campaign campaign = campaignRepository.findById(campaignId)
                 .orElseThrow(() -> new RuntimeException("Campaign not found"));
 
-        // Chỉ cho phép đăng ký khi chiến dịch đang Active
         if (!"active".equalsIgnoreCase(campaign.getStatus())) {
             throw new RuntimeException("Cannot register. Campaign is not active.");
         }
 
-        // 2. Tìm User dựa trên Email đăng nhập
+        // 2. Validate User
         userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User account not found"));
+        if (empId == null) throw new RuntimeException("Account not linked to employee profile.");
 
-        // Validate: User này có phải là nhân viên chính thức không?
-        // (Trường hợp tạo User admin nhưng chưa link vào hồ sơ nhân viên)
-        if (empId == null) {
-            throw new RuntimeException("This account is not linked to an employee profile. Please contact HR.");
+        // 3. CHECK LOGIC: Đã từng tham gia chưa?
+        Optional<CampaignParticipant> existing = participantRepository.findByEmpIdAndCampaignId(empId, campaignId);
+
+        if (existing.isPresent()) {
+            CampaignParticipant p = existing.get();
+            // Nếu đã LEFT -> Chặn không cho Join lại (theo Business Rule)
+            if (p.getStatus() == ParticipantStatus.LEFT) {
+                throw new RuntimeException("You cannot rejoin this campaign after leaving.");
+            }
+            // Nếu đang JOINED -> Báo đã tham gia
+            if (p.getStatus() == ParticipantStatus.JOINED) {
+                throw new RuntimeException("You have already registered for this campaign.");
+            }
         }
 
-        // 4. Kiểm tra đã đăng ký chưa (tránh trùng lặp)
-        if (participantRepository.existsByEmpIdAndCampaignId(empId, campaignId)) {
-            throw new RuntimeException("You have already registered for this campaign.");
-        }
-
-        // 5. Tạo và Lưu thông tin tham gia
+        // 4. Tạo mới (Nếu chưa từng có record)
         CampaignParticipant participant = CampaignParticipant.builder()
                 .empId(empId)
                 .campaignId(campaignId)
-                .campaign(campaign) // Set object Campaign
+                .campaign(campaign)
                 .joinedAt(LocalDateTime.now())
+                .status(ParticipantStatus.JOINED) // Set trạng thái JOINED
+                .currentScore(0.0)
                 .build();
 
         participantRepository.save(participant);
     }
 
+    // EMPLOYEE: Rời khỏi Campaign
+    // ... Imports
+
+    @Transactional
+    public void leaveCampaign(Long campaignId, Long empId) {
+        // 1. Kiểm tra Campaign
+        Campaign campaign = campaignRepository.findById(campaignId)
+                .orElseThrow(() -> new RuntimeException("Campaign not found"));
+
+        if ("completed".equalsIgnoreCase(campaign.getStatus()) || "closed".equalsIgnoreCase(campaign.getStatus())) {
+            throw new RuntimeException("Cannot leave a campaign that is already closed or completed.");
+        }
+
+        // 2. Tìm record tham gia
+        CampaignParticipant participant = participantRepository.findByEmpIdAndCampaignId(empId, campaignId)
+                .orElseThrow(() -> new RuntimeException("You are not a participant of this campaign."));
+
+        if (participant.getStatus() == ParticipantStatus.LEFT) {
+            throw new RuntimeException("You have already left this campaign.");
+        }
+
+        // 3. XỬ LÝ RỜI CHIẾN DỊCH (Tối ưu hóa nhờ @Formula)
+        
+        // A. Cập nhật trạng thái và Reset điểm cá nhân
+        // Việc reset currentScore về 0 sẽ làm cho @Formula totalDistance tự động giảm khi query lại
+        participant.setStatus(ParticipantStatus.LEFT);
+        participant.setCurrentScore(0.0); 
+        participantRepository.save(participant);
+
+        // B. Xóa sạch lịch sử hoạt động (Hard Delete)
+        activityRepository.deleteAllByCampaign_CampaignIdAndEmpId(campaignId, empId);
+        // Vì Entity Campaign dùng @Formula, nó sẽ tự tính lại chính xác khi API gọi GET danh sách.
+        
+        log.info("Employee {} left campaign {}. Activities deleted and score reset.", empId, campaignId);
+    }
+
     //  EMPLOYEE: Lấy danh sách Campaign mà nhân viên ĐÃ đăng ký
     public List<Campaign> getMyCampaigns(String userEmail, Long empId) {
-        userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        userRepository.findByEmail(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
+        if (empId == null) return List.of();
 
-        if (empId == null) return List.of(); // Nếu chưa là nhân viên thì trả về rỗng
-        // Lấy danh sách tham gia từ bảng trung gian
-        List<CampaignParticipant> participants = participantRepository.findByEmpId(empId);
+        // Chỉ lấy những campaign đang ở trạng thái JOINED
+        List<CampaignParticipant> participants = participantRepository.findByEmpIdAndStatus(empId, ParticipantStatus.JOINED);
 
-        // Lấy ra list Campaign từ list Participants
         return participants.stream()
                 .map(CampaignParticipant::getCampaign)
                 .toList();
@@ -304,6 +368,168 @@ public class CampaignService {
 
         // 6. Lưu lại
         return activityRepository.save(activity);
+    }
+    
+
+    // ----------------------------------------------------------------
+    // 1. LẤY BẢNG XẾP HẠNG (ĐÃ FIX LOGIC TÍNH TỔNG)
+    // ----------------------------------------------------------------
+    public List<LeaderboardEntryDTO> getLeaderboard(Long campaignId) {
+        // A. Lấy tất cả activity đã APPROVE
+        List<EmployeeActivity> activities = activityRepository.findByCampaign_CampaignIdAndStatus(campaignId, "approved");
+
+        // B. Tính tổng điểm (Group by EmployeeID)
+        Map<Long, LeaderboardEntryDTO> statsMap = new HashMap<>();
+
+        for (EmployeeActivity act : activities) {
+            double distance = parseDistance(act.getMetrics()); 
+            
+            statsMap.compute(act.getEmpId(), (k, v) -> {
+                // 1. Nếu chưa có thì khởi tạo mới
+                if (v == null) {
+                    v = LeaderboardEntryDTO.builder()
+                            .employeeId(k)
+                            .totalPoints(0.0) // Khởi tạo bằng 0
+                            .completedActivities(0)
+                            .lastActivityDate(act.getActivityDate().atStartOfDay())
+                            .build();
+                }
+
+                // 2. QUAN TRỌNG: Luôn cộng dồn distance (kể cả vừa mới tạo xong)
+                v.setTotalPoints(v.getTotalPoints() + distance);
+                v.setCompletedActivities(v.getCompletedActivities() + 1);
+                
+                // 3. Cập nhật ngày hoạt động gần nhất
+                if (act.getCreatedAt().isAfter(v.getLastActivityDate())) {
+                    v.setLastActivityDate(act.getCreatedAt());
+                }
+                
+                return v;
+            });
+        }
+
+        // C. Sắp xếp điểm từ cao -> thấp
+        List<LeaderboardEntryDTO> leaderboard = new ArrayList<>(statsMap.values());
+        leaderboard.sort(Comparator.comparingDouble(LeaderboardEntryDTO::getTotalPoints).reversed());
+
+        // D. Gán Rank và Gọi .NET lấy tên
+        for (int i = 0; i < leaderboard.size(); i++) {
+            LeaderboardEntryDTO entry = leaderboard.get(i);
+            entry.setRank(i + 1);
+            
+            // Làm tròn 2 số thập phân
+            double roundedPoints = Math.round(entry.getTotalPoints() * 100.0) / 100.0;
+            entry.setTotalPoints(roundedPoints);
+
+            try {
+                // Gọi sang .NET lấy thông tin
+                EmployeeResponse emp = employeeRepository.getById(entry.getEmployeeId());
+                
+                if (emp != null) {
+                    // 1. Set Tên
+                    entry.setEmployeeName(emp.fullName() != null ? emp.fullName() : "Employee #" + entry.getEmployeeId());
+                    
+                    // 2. 👇 LOGIC MỚI: Lấy ID từ .NET -> Map sang Tên thủ công
+                    String deptName = getDepartmentNameById(emp.departmentId());
+                    entry.setDepartment(deptName);
+                    
+                } else {
+                    entry.setEmployeeName("Employee #" + entry.getEmployeeId());
+                    entry.setDepartment("N/A");
+                }
+            } catch (Exception e) {
+                log.error("Failed to fetch/map employee info for ID: " + entry.getEmployeeId(), e);
+                entry.setEmployeeName("Unknown");
+                entry.setDepartment("Unknown");
+            }
+        }
+
+        return leaderboard;
+    }
+
+    // Helper method để lấy tên phòng ban từ ID
+    private String getDepartmentNameById(Long deptId) {
+        if (deptId == null) return "Unknown Dept";
+        
+        return switch (deptId.intValue()) {
+            case 1 -> "Engineering";
+            case 2 -> "Product";       
+            case 3 -> "Quality Assurance";
+            case 4 -> "DevOps";
+            case 5 -> "Data & Analytics";
+            case 6 -> "Human Resources";
+            case 7 -> "Finance";
+            default -> "Dept #" + deptId; // Fallback nếu có ID mới
+        };
+    }
+
+    // ----------------------------------------------------------------
+    // 2. LẤY HẠNG CỦA TÔI
+    // ----------------------------------------------------------------
+    public MyRankInfoDTO getMyRank(Long campaignId, Long empId) {
+        List<LeaderboardEntryDTO> leaderboard = getLeaderboard(campaignId);
+
+        Optional<LeaderboardEntryDTO> myEntryOpt = leaderboard.stream()
+                .filter(e -> e.getEmployeeId().equals(empId))
+                .findFirst();
+
+        if (myEntryOpt.isEmpty()) {
+            return MyRankInfoDTO.builder()
+                    .rank(0).totalPoints(0).completedActivities(0).pointsToNextRank(0)
+                    .nextRankName("Leaderboard").build();
+        }
+
+        LeaderboardEntryDTO me = myEntryOpt.get();
+        double pointsToNext = 0;
+        String nextRankName = null;
+
+        if (me.getRank() > 1) {
+            LeaderboardEntryDTO personAbove = leaderboard.get(me.getRank() - 2);
+            pointsToNext = Math.round((personAbove.getTotalPoints() - me.getTotalPoints()) * 100.0) / 100.0;
+            nextRankName = "Rank #" + (me.getRank() - 1);
+        }
+
+        return MyRankInfoDTO.builder()
+                .rank(me.getRank())
+                .totalPoints(me.getTotalPoints())
+                .completedActivities(me.getCompletedActivities())
+                .pointsToNextRank(pointsToNext)
+                .nextRankName(nextRankName)
+                .build();
+    }
+
+    // Helper parse JSON
+    private double parseDistance(String metricsJson) {
+        try {
+            if (metricsJson == null || metricsJson.isEmpty()) return 0.0;
+            JsonNode node = objectMapper.readTree(metricsJson);
+            return node.has("distance") ? node.get("distance").asDouble() : 0.0;
+        } catch (Exception e) { return 0.0; }
+    } 
+
+
+    // ADMIN: Đóng chiến dịch (Close Campaign)
+    public Campaign closeCampaign(Long id) {
+        Campaign campaign = campaignRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Campaign not found"));
+
+        // Validate 1: Chỉ đóng được khi đang active
+        if (!"active".equalsIgnoreCase(campaign.getStatus())) {
+            throw new IllegalStateException("Only active campaigns can be closed.");
+        }
+
+        // Validate 2: Chỉ đóng được khi không còn activity pending
+        if (activityRepository.existsByCampaign_CampaignIdAndStatus(id, "pending")) {
+            throw new IllegalStateException("Cannot close campaign. There are pending approvals that must be processed first.");
+        }
+
+        // Cập nhật trạng thái thành 'completed'
+        // Lưu ý: Dùng từ khóa 'completed' để khớp với logic filter ở Frontend
+        campaign.setStatus("completed");
+        
+        // (Optional) Tại đây có thể trigger tính toán reward, notification...
+        
+        return campaignRepository.save(campaign);
     }
 }
 

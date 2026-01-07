@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.repository.query.Param;
-import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -41,4 +40,12 @@ public interface CampaignRepository extends JpaRepository<Campaign, Long> {
            "WHERE a.status = 'pending' " +
            "GROUP BY c.campaignId, c.campaignName")
     List<PendingCampaignDTO> findCampaignsWithPendingActivities();
+
+
+    // Lấy các chiến dịch Active mà nhân viên CHƯA TỪNG tham gia (Chưa có record trong bảng Campaign_Participant)
+    @Query("SELECT c FROM Campaign c " +
+           "WHERE c.status = 'active' " +
+           "AND c.campaignId NOT IN " +
+           "(SELECT cp.campaignId FROM CampaignParticipant cp WHERE cp.empId = :empId)")
+    List<Campaign> findAvailableCampaignsForEmployee(@Param("empId") Long empId);
 }

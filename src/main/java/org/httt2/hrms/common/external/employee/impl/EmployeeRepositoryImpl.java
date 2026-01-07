@@ -13,7 +13,7 @@ import org.springframework.web.client.RestTemplate;
 @Slf4j
 public class EmployeeRepositoryImpl implements EmployeeRepository {
 
-    private final RestTemplate restTemplate; // 👈 Cần Bean RestTemplate trong config
+    private final RestTemplate restTemplate; // Cần Bean RestTemplate trong config
 
     // 👇 URL của Service .NET (Cấu hình trong application.properties)
     // Ví dụ: external.employee-service.url=http://localhost:5000/api/employees

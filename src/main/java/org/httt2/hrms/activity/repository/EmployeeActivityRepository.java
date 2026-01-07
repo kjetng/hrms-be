@@ -20,4 +20,11 @@ public interface EmployeeActivityRepository extends JpaRepository<EmployeeActivi
            "WHERE a.campaign.campaignId = :campaignId AND a.status = 'pending' " +
            "ORDER BY a.createdAt ASC")
     List<EmployeeActivity> findPendingByCampaignId(@Param("campaignId") Long campaignId);
+    // Lấy danh sách hoạt động của 1 chiến dịch theo trạng thái
+    List<EmployeeActivity> findByCampaign_CampaignIdAndStatus(Long campaignId, String status);
+
+    // Xóa tất cả hoạt động của nhân viên trong chiến dịch (Hard Delete)
+    void deleteAllByCampaign_CampaignIdAndEmpId(Long campaignId, Long empId);
+
+    boolean existsByCampaign_CampaignIdAndStatus(Long campaignId, String status);
 }

@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;   
+import org.hibernate.annotations.Formula;
 
 @Entity
 @Table(name = "campaign")
@@ -57,5 +58,22 @@ public class Campaign {
         if (status == null) {
             status = "draft";
         }
+    }
+
+    // Đếm số lượng người tham gia
+    @Formula("(SELECT COUNT(*) FROM campaign_participant cp WHERE cp.campaign_id = campaign_id AND cp.status = 'JOINED')")
+    private Long participantCount;
+
+    // Tính tổng điểm (đã cộng dồn từ EmployeeActivity)
+    @Formula("(SELECT COALESCE(SUM(cp.current_score), 0) FROM campaign_participant cp WHERE cp.campaign_id = campaign_id)")
+    private Double totalDistance;
+
+    // Getter cho trường này (Lombok @Getter đã tự sinh, nhưng nếu không có thì bạn thêm thủ công)
+    public Long getParticipantCount() {
+        return participantCount == null ? 0 : participantCount;
+    }
+
+    public Double getTotalDistance() {
+        return totalDistance == null ? 0.0 : totalDistance;
     }
 }

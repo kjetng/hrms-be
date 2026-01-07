@@ -5,17 +5,15 @@ import org.httt2.hrms.activity.entity.Campaign;
 import org.httt2.hrms.activity.entity.EmployeeActivity;
 import org.httt2.hrms.activity.service.CampaignService;
 import org.httt2.hrms.auth.config.JwtService;
-import org.httt2.hrms.auth.config.JwtService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.httt2.hrms.activity.dto.ActivitySubmissionRequest;
 import org.httt2.hrms.activity.dto.CampaignCreateRequest;
-import jakarta.servlet.http.HttpServletRequest;
+import org.httt2.hrms.activity.dto.leaderboard.LeaderboardEntryDTO;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 import java.util.Optional;
-import java.security.Principal;
 import java.security.Principal;
 
 @RestController
@@ -25,7 +23,6 @@ import java.security.Principal;
 public class CampaignController {
 
     private final CampaignService campaignService;
-    private final JwtService jwtService;
     private final JwtService jwtService;
 
     @GetMapping
@@ -74,9 +71,18 @@ public class CampaignController {
     
     // EMPLOYEE:Lấy danh sách campaign đang mở (Cho phần "You Can Join")
     @GetMapping("/active")
-    public ResponseEntity<List<Campaign>> getActiveCampaigns() {
+    public ResponseEntity<List<Campaign>> getActiveCampaigns(HttpServletRequest request) { // Thêm request
         try {
-            List<Campaign> campaigns = campaignService.getActiveCampaigns();
+            // Thử lấy empId từ token (nếu user đã đăng nhập)
+            Long empId = null;
+            try {
+                empId = jwtService.extractEmpIdFromRequest(request);
+            } catch (Exception e) {
+                // Ignore error if token invalid/missing (cho phép xem chế độ guest nếu muốn)
+            }
+
+            // Truyền empId xuống service
+            List<Campaign> campaigns = campaignService.getActiveCampaigns(empId);
             return ResponseEntity.ok(campaigns);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
@@ -241,6 +247,57 @@ public class CampaignController {
             return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
         }
     }
-}
 
+    // 1. API Leaderboard
+    @GetMapping("/{id}/leaderboard")
+    public ResponseEntity<List<LeaderboardEntryDTO>> getLeaderboard(@PathVariable Long id) {
+        return ResponseEntity.ok(campaignService.getLeaderboard(id));
+    }
+
+    // 2. API lấy Rank của tôi
+    @GetMapping("/{id}/leaderboard/me")
+    public ResponseEntity<?> getMyRank(@PathVariable Long id, HttpServletRequest request) {
+        try {
+            Long empId = jwtService.extractEmpIdFromRequest(request);
+            if (empId == null) return ResponseEntity.status(401).body("Employee ID not found in token");
+            
+            return ResponseEntity.ok(campaignService.getMyRank(id, empId));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+        }
+    }
+
+
+    // 3. API Rời chiến dịch
+    @DeleteMapping("/{id}/leave")
+    public ResponseEntity<?> leaveCampaign(@PathVariable Long id, HttpServletRequest request) {
+        try {
+            Long empId = jwtService.extractEmpIdFromRequest(request);
+            if (empId == null) return ResponseEntity.status(401).body("Employee ID not found in token");
+
+            campaignService.leaveCampaign(id, empId);
+            
+            return ResponseEntity.ok("Successfully left the campaign.");
+        } catch (RuntimeException e) {
+            // Lỗi Business Logic (Campaign closed, chưa join...) trả về 400
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            // Lỗi hệ thống trả về 500
+            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+        }
+    }
+
+
+    @PostMapping("/{id}/close")
+    public ResponseEntity<?> closeCampaign(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(campaignService.closeCampaign(id));
+        } catch (IllegalStateException e) {
+            // Trả về lỗi 400 Bad Request với message cụ thể
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+        }
+    }
+}
 

@@ -61,8 +61,10 @@ public class AdminApprovalService {
             Optional<User> userOpt = userRepository.findByEmpId(activity.getEmpId());
 
             String empEmail = userOpt.map(User::getEmail).orElse("Unknown");
-            String empName = "Employee #" + activity.getEmpId(); // Tạm thời dùng ID vì User entity chưa có field Name
 
+            EmployeeResponse emp = employeeRepository.getById(activity.getEmpId());
+            String empName = emp.fullName() != null ? emp.fullName() : "Employee #" + activity.getEmpId(); 
+            
             return PendingActivityDTO.builder()
                     .id(activity.getActivityId())
                     .employeeName(empName) 
