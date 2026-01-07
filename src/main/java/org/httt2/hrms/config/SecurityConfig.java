@@ -31,13 +31,13 @@ public class SecurityConfig {
         .csrf(AbstractHttpConfigurer::disable)
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .authorizeHttpRequests(authz -> authz
-//            .requestMatchers("/auth/**").permitAll()
-                .requestMatchers("/error").permitAll()
-                .requestMatchers("/error").permitAll()
-                .requestMatchers("/**").permitAll()
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                .anyRequest().authenticated()
-        )
+            // Public endpoints
+            .requestMatchers("/auth/register", "/auth/login").permitAll()
+            .requestMatchers("/api/onboarding/**").permitAll()
+            .requestMatchers("/error").permitAll()
+            .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+            // All other endpoints require authentication
+            .anyRequest().authenticated())
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authenticationProvider(authenticationProvider) // Use the injected provider
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
@@ -48,7 +48,7 @@ public class SecurityConfig {
   @Bean
   public UrlBasedCorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
-//    configuration.setAllowedOrigins(List.of("http://localhost:5174"));
+    // configuration.setAllowedOrigins(List.of("http://localhost:5174"));
     configuration.setAllowedOriginPatterns(List.of("*"));
     configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
     configuration.setAllowedHeaders(List.of("*"));

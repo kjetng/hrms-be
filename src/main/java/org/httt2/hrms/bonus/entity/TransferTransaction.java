@@ -19,6 +19,10 @@ public class TransferTransaction {
   private Integer numberPoint;
   private String note;
 
+  @Enumerated(EnumType.STRING)
+  @Column(name = "transfer_type") //REDEEM,TRANSFER,DEDUCT,AWARD,MONTHLY
+  private TransferType type;
+
   @Builder.Default
   private LocalDateTime createdAt = LocalDateTime.now();
 

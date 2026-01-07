@@ -3,6 +3,8 @@ package org.httt2.hrms.config;
 import lombok.RequiredArgsConstructor;
 import org.httt2.hrms.activity.entity.Campaign;
 import org.httt2.hrms.activity.repository.CampaignRepository;
+import org.httt2.hrms.bonus.entity.BonusCreditSetting;
+import org.httt2.hrms.bonus.repository.BonusCreditSettingRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,12 +18,26 @@ import java.time.LocalTime;
 public class DataInitializer {
 
     private final CampaignRepository campaignRepository;
+    private final BonusCreditSettingRepository bonusCreditSettingRepository;
 
     @Bean
     public CommandLineRunner initData() {
         return args -> {
+            // Initialize BonusCreditSetting if not exists
+            if (bonusCreditSettingRepository.count() == 0) {
+                System.out.println("🌱 Initializing bonus credit settings...");
+                BonusCreditSetting setting = BonusCreditSetting.builder()
+                        .baseBonusCredits(100)
+                        .conversionRate(1000)
+                        .creditDate(15)
+                        .build();
+                bonusCreditSettingRepository.save(setting);
+                System.out.println("✅ Bonus credit settings initialized!");
+            }
+
+            // Initialize Campaigns if not exists
             if (campaignRepository.count() == 0) {
-                System.out.println("🌱 Starting seeding data...");
+                System.out.println("🌱 Starting seeding campaign data...");
 
                 // 1. Campaign 1: Running
                 Campaign c1 = new Campaign();
@@ -31,7 +47,7 @@ public class DataInitializer {
                 c1.setDescription("Chiến dịch chạy bộ mùa hè dành cho toàn thể nhân viên.");
                 c1.setStartDate(LocalDate.of(2025, 6, 1));
                 c1.setEndDate(LocalDate.of(2025, 6, 30));
-                c1.setStartTime(LocalTime.of(9, 00)); 
+                c1.setStartTime(LocalTime.of(9, 00));
                 c1.setEndTime(LocalTime.of(23, 0));
                 c1.setStatus("active"); // Dùng String thường
                 c1.setImageUrl("https://images.unsplash.com/photo-1552674605-db6ffd4facb5");
@@ -44,7 +60,7 @@ public class DataInitializer {
                 c2.setDescription("Đi bộ nhẹ nhàng quanh văn phòng.");
                 c2.setStartDate(LocalDate.of(2025, 7, 15));
                 c2.setEndDate(LocalDate.of(2025, 7, 20));
-                c2.setStartTime(LocalTime.of(9, 00)); 
+                c2.setStartTime(LocalTime.of(9, 00));
                 c2.setEndTime(LocalTime.of(17, 0));
                 c2.setStatus("draft");
                 c2.setImageUrl("https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b");
@@ -57,14 +73,14 @@ public class DataInitializer {
                 c3.setDescription("Đạp xe quanh thành phố vào cuối tuần.");
                 c3.setStartDate(LocalDate.of(2024, 1, 1));
                 c3.setEndDate(LocalDate.of(2024, 1, 30));
-                c3.setStartTime(LocalTime.of(9, 00)); 
+                c3.setStartTime(LocalTime.of(9, 00));
                 c3.setEndTime(LocalTime.of(17, 0));
                 c3.setStatus("completed");
                 c3.setImageUrl("https://images.unsplash.com/photo-1536922246289-88c42f957773");
 
                 // Lưu vào DB
                 campaignRepository.saveAll(List.of(c1, c2, c3));
-                System.out.println("✅ Data seeded successfully!");
+                System.out.println("✅ Campaign data seeded successfully!");
             }
         };
     }

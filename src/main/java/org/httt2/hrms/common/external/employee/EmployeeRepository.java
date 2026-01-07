@@ -1,8 +1,14 @@
 package org.httt2.hrms.common.external.employee;
 
 import org.httt2.hrms.common.external.employee.dto.EmployeeResponse;
+import org.httt2.hrms.common.external.employee.dto.ManagerEmployeeResponse;
+
+import java.util.List;
 
 public interface EmployeeRepository {
-  EmployeeResponse getById(Long id);
+
+  EmployeeResponse getOneById(Long id);
   EmployeeResponse getOneByEmail(String email);
+
+  List<ManagerEmployeeResponse> getDirectReports(Long managerId);
 }
