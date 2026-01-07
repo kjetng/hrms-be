@@ -58,10 +58,4 @@ public class SecurityConfig {
     source.registerCorsConfiguration("/**", configuration);
     return source;
   }
-
-  @Configuration
-  public class AppConfig {
-      @Bean
-      public RestTemplate restTemplate() { return new RestTemplate(); }
-  }
 }

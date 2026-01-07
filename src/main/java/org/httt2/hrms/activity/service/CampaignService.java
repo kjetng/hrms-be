@@ -423,7 +423,7 @@ public class CampaignService {
 
             try {
                 // Gọi sang .NET lấy thông tin
-                EmployeeResponse emp = employeeRepository.getById(entry.getEmployeeId());
+                EmployeeResponse emp = employeeRepository.getOneById(entry.getEmployeeId());
                 
                 if (emp != null) {
                     // 1. Set Tên

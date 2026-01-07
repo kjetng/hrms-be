@@ -8,7 +8,6 @@ import java.util.List;
 public interface EmployeeRepository {
 
   EmployeeResponse getOneById(Long id);
-  EmployeeResponse getOneByEmail(String email);
 
   List<ManagerEmployeeResponse> getDirectReports(Long managerId);
 }

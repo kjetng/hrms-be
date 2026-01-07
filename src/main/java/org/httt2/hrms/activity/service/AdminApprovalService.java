@@ -62,7 +62,7 @@ public class AdminApprovalService {
 
             String empEmail = userOpt.map(User::getEmail).orElse("Unknown");
 
-            EmployeeResponse emp = employeeRepository.getById(activity.getEmpId());
+            EmployeeResponse emp = employeeRepository.getOneById(activity.getEmpId());
             String empName = emp.fullName() != null ? emp.fullName() : "Employee #" + activity.getEmpId(); 
             
             return PendingActivityDTO.builder()
@@ -178,7 +178,7 @@ public class AdminApprovalService {
             log.info("--- START SENDING EMAIL PROCESS for EmpID: {} ---", empId); // 1. Bắt đầu
 
             // Gọi sang .NET
-            EmployeeResponse employee = employeeRepository.getById(empId);
+            EmployeeResponse employee = employeeRepository.getOneById(empId);
             log.info("Response from .NET: {}", employee); // 2. Xem kết quả trả về từ .NET
 
             if (employee != null && employee.personalEmail() != null) {
