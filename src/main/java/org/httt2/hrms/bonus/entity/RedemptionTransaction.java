@@ -19,6 +19,7 @@ public class RedemptionTransaction {
 
   private Integer convertedPoint;
   private BigDecimal amountReceived;
+  private String note;
 
   @Builder.Default
   private LocalDateTime createdAt = LocalDateTime.now();

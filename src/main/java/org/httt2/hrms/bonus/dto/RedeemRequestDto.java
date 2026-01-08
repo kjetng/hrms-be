@@ -13,4 +13,6 @@ public class RedeemRequestDto {
     private Integer points;
 
     private BigDecimal amount;
+
+    private String note;
 }

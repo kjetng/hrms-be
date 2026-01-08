@@ -106,7 +106,8 @@ public class BonusPointViewService {
                             .type(HistoryType.REDEEM)
                             .points(r.getConvertedPoint())
                             .amount(r.getAmountReceived())
-                            .currency("USD")
+                            .note(r.getNote())
+                            .currency("VND")
                             .createdAt(r.getCreatedAt())
                             .build());
         }
@@ -167,7 +168,8 @@ public class BonusPointViewService {
                             .type(HistoryType.REDEEM)
                             .points(r.getConvertedPoint())
                             .amount(r.getAmountReceived())
-                            .currency("USD")
+                            .note(r.getNote())
+                            .currency("VND")
                             .createdAt(r.getCreatedAt())
                             .build());
         }
