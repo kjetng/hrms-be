@@ -107,7 +107,7 @@ public class BonusPointViewService {
                             .points(r.getConvertedPoint())
                             .amount(r.getAmountReceived())
                             .note(r.getNote())
-                            .currency("USD")
+                            .currency("VND")
                             .createdAt(r.getCreatedAt())
                             .build());
         }
@@ -169,7 +169,7 @@ public class BonusPointViewService {
                             .points(r.getConvertedPoint())
                             .amount(r.getAmountReceived())
                             .note(r.getNote())
-                            .currency("USD")
+                            .currency("VND")
                             .createdAt(r.getCreatedAt())
                             .build());
         }
