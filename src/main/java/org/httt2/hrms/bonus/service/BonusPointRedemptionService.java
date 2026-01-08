@@ -97,7 +97,12 @@ public class BonusPointRedemptionService {
                 formattedAmount);
 
         if (userNote != null && !userNote.trim().isEmpty()) {
-            return userNote.trim() + " | " + systemNote;
+            String combined = userNote.trim() + " | " + systemNote;
+            if (combined.length() <= 500) {
+                return combined;
+            }
+            // Exceeds DB column length, fallback to system-generated note
+            return systemNote;
         }
 
         return systemNote;
