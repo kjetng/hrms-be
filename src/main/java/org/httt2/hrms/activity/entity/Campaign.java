@@ -52,6 +52,9 @@ public class Campaign {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "target_goal")
+    private Double targetGoal;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

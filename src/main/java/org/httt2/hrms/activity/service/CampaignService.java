@@ -103,6 +103,7 @@ public class CampaignService {
                 .description(request.getDescription())
                 .campaignType(request.getCampaignType())
                 .primaryMetric(metric) // Tự động set
+                .targetGoal(request.getTargetGoal() != null ? request.getTargetGoal() : 100.0)
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
                 .startTime(request.getStartTime())
@@ -136,6 +137,10 @@ public class CampaignService {
         existingCampaign.setEndDate(request.getEndDate());
         existingCampaign.setStartTime(request.getStartTime());
         existingCampaign.setEndTime(request.getEndTime());
+
+        if (request.getTargetGoal() != null) {
+            existingCampaign.setTargetGoal(request.getTargetGoal());
+        }
 
         // 4. Cập nhật ảnh (Chỉ cập nhật nếu Frontend có gửi chuỗi khác rỗng/null)
         if (request.getImageUrl() != null) {

@@ -9,6 +9,7 @@ public class CampaignCreateRequest {
     private String campaignName;
     private String description;
     private String campaignType; // 'walking', 'running', 'cycling'
+    private Double targetGoal;
     private LocalDate startDate;
     private LocalDate endDate;
     private LocalTime startTime;
