@@ -20,6 +20,9 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.math.BigDecimal;
+import java.text.NumberFormat;
+import java.time.LocalDate;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -68,16 +71,36 @@ public class BonusPointRedemptionService {
         account.setBonusPoint(account.getBonusPoint() - request.getPoints());
         accountRepo.save(account);
 
+        // Generate formatted note
+        String note = buildRedemptionNote(request.getUserNote(), request.getPoints(), amountReceived);
+
         // Create redemption transaction
         RedemptionTransaction transaction = RedemptionTransaction.builder()
                 .convertedPoint(request.getPoints())
                 .amountReceived(amountReceived)
+                .note(note)
                 .account(account)
                 .build();
 
         RedemptionTransaction savedTransaction = redemptionRepo.save(transaction);
 
         return RedemptionTransactionDto.from(savedTransaction);
+    }
+
+    private String buildRedemptionNote(String userNote, Integer points, BigDecimal amount) {
+        NumberFormat currencyFormat = NumberFormat.getInstance(new Locale("vi", "VN"));
+        String formattedAmount = currencyFormat.format(amount);
+        
+        String systemNote = String.format("Withdrawal on %s | %d points → %s VND",
+                LocalDate.now(),
+                points,
+                formattedAmount);
+        
+        if (userNote != null && !userNote.trim().isEmpty()) {
+            return userNote.trim() + " | " + systemNote;
+        }
+        
+        return systemNote;
     }
 
     private Long extractEmpIdFromRequest() {

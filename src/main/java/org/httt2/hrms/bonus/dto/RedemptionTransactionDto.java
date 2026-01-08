@@ -12,6 +12,7 @@ public class RedemptionTransactionDto {
     private Long redemptionId;
     private Integer convertedPoint;
     private BigDecimal amountReceived;
+    private String note;
     private LocalDateTime createdAt;
 
     public static RedemptionTransactionDto from(RedemptionTransaction entity) {
@@ -19,6 +20,7 @@ public class RedemptionTransactionDto {
         dto.setRedemptionId(entity.getRedemptionId());
         dto.setConvertedPoint(entity.getConvertedPoint());
         dto.setAmountReceived(entity.getAmountReceived());
+        dto.setNote(entity.getNote());
         dto.setCreatedAt(entity.getCreatedAt());
         return dto;
     }
