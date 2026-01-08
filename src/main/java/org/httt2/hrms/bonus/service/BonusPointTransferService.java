@@ -24,8 +24,6 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @RequiredArgsConstructor
 public class BonusPointTransferService {
 
-    private static final Long SYSTEM_EMP_ID = -1L;
-
     private final BonusPointAccountRepository accountRepo;
     private final TransferTransactionRepository transferRepo;
     private final JwtService jwtService;
@@ -52,13 +50,15 @@ public class BonusPointTransferService {
         Long actualReceiverId;
 
         if (transferType == TransferType.AWARD) {
-            // AWARD: Employee receives points from system (system +0)
-            actualSenderId = SYSTEM_EMP_ID;
+            // AWARD: Manager awards points to employee (manager as sender, only employee
+            // balance changes)
+            actualSenderId = senderId; // Manager's empId
             actualReceiverId = request.getReceiverId();
         } else if (transferType == TransferType.DEDUCT) {
-            // DEDUCT: Employee loses points to system (system +0)
+            // DEDUCT: Manager deducts points from employee (manager as receiver, only
+            // employee balance changes)
             actualSenderId = request.getReceiverId();
-            actualReceiverId = SYSTEM_EMP_ID;
+            actualReceiverId = senderId; // Manager's empId
         } else {
             // TRANSFER: Normal transfer between employees
             actualSenderId = senderId;
@@ -68,9 +68,11 @@ public class BonusPointTransferService {
         BonusPointAccount sender = null;
         BonusPointAccount receiver = null;
 
-        // For AWARD/DEDUCT, only load the employee account (system stays at 0)
+        // For AWARD/DEDUCT, load manager account for record but don't modify their
+        // balance
         if (transferType == TransferType.AWARD) {
-            sender = null; // System account not loaded
+            sender = accountRepo.findById(actualSenderId)
+                    .orElseThrow(() -> new IllegalStateException("Manager account not found"));
             receiver = accountRepo.findById(actualReceiverId)
                     .orElseThrow(() -> new IllegalStateException("Receiver account not found"));
 
@@ -78,11 +80,13 @@ public class BonusPointTransferService {
                 throw new IllegalStateException("Points must be positive for AWARD");
             }
 
+            // Only modify employee's balance
             receiver.setBonusPoint(receiver.getBonusPoint() + request.getPoints());
         } else if (transferType == TransferType.DEDUCT) {
             sender = accountRepo.findById(actualSenderId)
                     .orElseThrow(() -> new IllegalStateException("Sender account not found"));
-            receiver = null; // System account not loaded
+            receiver = accountRepo.findById(actualReceiverId)
+                    .orElseThrow(() -> new IllegalStateException("Manager account not found"));
 
             int available = sender.getBonusPoint();
             int requested = request.getPoints();
@@ -91,6 +95,7 @@ public class BonusPointTransferService {
                         "Insufficient points to deduct: requested " + requested + ", available " + available);
             }
 
+            // Only modify employee's balance
             sender.setBonusPoint(available - requested);
         } else {
             // TRANSFER: Normal flow with both accounts
@@ -111,22 +116,23 @@ public class BonusPointTransferService {
         }
 
         // Save only the accounts that were actually modified
-        if (sender != null) {
+        if (transferType == TransferType.AWARD) {
+            // Only save employee receiver, not manager sender
+            accountRepo.save(receiver);
+        } else if (transferType == TransferType.DEDUCT) {
+            // Only save employee sender, not manager receiver
             accountRepo.save(sender);
-        }
-        if (receiver != null) {
+        } else {
+            // TRANSFER: Save both
+            accountRepo.save(sender);
             accountRepo.save(receiver);
         }
 
-        // Create transaction record with system as sender/receiver for audit trail
-        BonusPointAccount senderForRecord = sender != null ? sender : accountRepo.findById(actualSenderId).orElse(null);
-        BonusPointAccount receiverForRecord = receiver != null ? receiver
-                : accountRepo.findById(actualReceiverId).orElse(null);
-
+        // Create transaction record with manager info for AWARD/DEDUCT
         TransferTransaction savedTransaction = transferRepo.save(
                 TransferTransaction.builder()
-                        .sender(senderForRecord)
-                        .receiver(receiverForRecord)
+                        .sender(sender)
+                        .receiver(receiver)
                         .numberPoint(request.getPoints())
                         .note(request.getNote())
                         .type(transferType)
