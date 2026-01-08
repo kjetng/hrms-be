@@ -90,16 +90,16 @@ public class BonusPointRedemptionService {
     private String buildRedemptionNote(String userNote, Integer points, BigDecimal amount) {
         NumberFormat currencyFormat = NumberFormat.getInstance(new Locale("vi", "VN"));
         String formattedAmount = currencyFormat.format(amount);
-        
+
         String systemNote = String.format("Withdrawal on %s | %d points → %s VND",
                 LocalDate.now(),
                 points,
                 formattedAmount);
-        
+
         if (userNote != null && !userNote.trim().isEmpty()) {
             return userNote.trim() + " | " + systemNote;
         }
-        
+
         return systemNote;
     }
 
