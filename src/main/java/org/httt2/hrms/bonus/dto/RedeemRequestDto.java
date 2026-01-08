@@ -14,5 +14,5 @@ public class RedeemRequestDto {
 
     private BigDecimal amount;
 
-    private String userNote;
+    private String note;
 }

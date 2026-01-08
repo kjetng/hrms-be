@@ -72,7 +72,7 @@ public class BonusPointRedemptionService {
         accountRepo.save(account);
 
         // Generate formatted note
-        String note = buildRedemptionNote(request.getUserNote(), request.getPoints(), amountReceived);
+        String note = buildRedemptionNote(request.getNote(), request.getPoints(), amountReceived);
 
         // Create redemption transaction
         RedemptionTransaction transaction = RedemptionTransaction.builder()
@@ -87,8 +87,9 @@ public class BonusPointRedemptionService {
         return RedemptionTransactionDto.from(savedTransaction);
     }
 
-    private String buildRedemptionNote(String userNote, Integer points, BigDecimal amount) {
+    private String buildRedemptionNote(String note, Integer points, BigDecimal amount) {
         NumberFormat currencyFormat = NumberFormat.getInstance(new Locale("vi", "VN"));
+        currencyFormat.setGroupingUsed(true);
         String formattedAmount = currencyFormat.format(amount);
 
         String systemNote = String.format("Withdrawal on %s | %d points → %s VND",
@@ -96,15 +97,15 @@ public class BonusPointRedemptionService {
                 points,
                 formattedAmount);
 
-        if (userNote != null && !userNote.trim().isEmpty()) {
-            String combined = userNote.trim() + " | " + systemNote;
-            if (combined.length() <= 500) {
-                return combined;
+        if (note != null) {
+            String trimmed = note.trim();
+            if (!trimmed.isEmpty()) {
+                // Only user note; enforce max 500 chars
+                return trimmed.length() <= 500 ? trimmed : trimmed.substring(0, 500);
             }
-            // Exceeds DB column length, fallback to system-generated note
-            return systemNote;
         }
 
+        // No user note provided; use system-generated note
         return systemNote;
     }
 
