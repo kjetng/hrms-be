@@ -24,6 +24,12 @@ import org.httt2.hrms.common.external.employee.dto.EmployeeResponse;
 
 import org.httt2.hrms.activity.entity.ParticipantStatus;
 
+import org.springframework.amqp.rabbit.core.RabbitTemplate; // Import RabbitTemplate
+import org.springframework.beans.factory.annotation.Value; // Import Value
+
+import org.httt2.hrms.common.email.SendEmailEvent; // Import Event Email
+import org.springframework.amqp.rabbit.core.RabbitTemplate; // Import RabbitTemplate
+
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
@@ -48,6 +54,13 @@ public class CampaignService {
     private final EmployeeActivityRepository activityRepository;
     private final EmployeeRepository employeeRepository;
     private final ObjectMapper objectMapper;
+
+    // INJECT THÊM RabbitTemplate
+    private final RabbitTemplate rabbitTemplate;
+
+    // Lấy tên Queue từ config
+    @Value("${rabbitmq.queue.send-email}")
+    private String emailQueue;
 
     public List<Campaign> getAllCampaigns() {
         log.info("Fetching all campaigns");
@@ -159,17 +172,89 @@ public class CampaignService {
         return campaignRepository.save(existingCampaign);
     }
 
+    @Transactional
     public Campaign publishCampaign(Long id) {
-    Campaign campaign = campaignRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Campaign not found"));
-            
-    // Validate: Chỉ publish được khi đang là draft
-    if (!"draft".equalsIgnoreCase(campaign.getStatus())) {
-        throw new IllegalStateException("Only draft campaigns can be published");
+        Campaign campaign = campaignRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Campaign not found"));
+                
+        if (!"draft".equalsIgnoreCase(campaign.getStatus())) {
+            throw new IllegalStateException("Only draft campaigns can be published");
+        }
+        
+        campaign.setStatus("active");
+        Campaign savedCampaign = campaignRepository.save(campaign);
+        
+        // Gọi hàm gửi email
+        notifyAllEmployeesAboutNewCampaign(savedCampaign);
+        
+        return savedCampaign;
     }
     
-    campaign.setStatus("active"); // Hoặc "published" tùy quy ước nhóm bạn
-    return campaignRepository.save(campaign);
+    private void notifyAllEmployeesAboutNewCampaign(Campaign campaign) {
+        // Chạy trong Thread mới để không làm admin phải chờ lâu (vì phải gọi API chi tiết nhiều lần)
+        new Thread(() -> {
+            try {
+                log.info("--- START NOTIFYING EMPLOYEES (Fetching details for personalEmail) ---");
+                
+                // 1. Lấy danh sách sơ bộ (chỉ có ID, Name, chưa có Personal Email)
+                List<EmployeeResponse> basicList = employeeRepository.getAllEmployees();
+                
+                if (basicList == null || basicList.isEmpty()) {
+                    log.warn("No employees found.");
+                    return;
+                }
+                
+                String subject = "🚀 New Campaign Published: " + campaign.getCampaignName();
+                String htmlContent = String.format(
+                    "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>" +
+                    "<h2 style='color: #2c3e50;'>🎯 New Campaign Published!</h2>" +
+                    "<div style='background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;'>" +
+                    "<h3 style='color: #27ae60; margin-top: 0;'>%s</h3>" +
+                    "<p><strong>Description:</strong> %s</p>" +
+                    "<p><strong>Type:</strong> %s | <strong>Goal:</strong> %s</p>" +
+                    "<p><strong>Duration:</strong> %s to %s</p>" +
+                    "</div>" +
+                    "<p>Log in to HRMS to join now!</p>" +
+                    "</div>",
+                    campaign.getCampaignName(),
+                    campaign.getDescription() != null ? campaign.getDescription() : "",
+                    campaign.getCampaignType(),
+                    campaign.getTargetGoal(),
+                    campaign.getStartDate(),
+                    campaign.getEndDate()
+                );
+                
+                int count = 0;
+                
+                // 2. Duyệt qua từng nhân viên để lấy Email thật
+                for (EmployeeResponse basicEmp : basicList) {
+                    try {
+                        // QUAN TRỌNG: Gọi API chi tiết để lấy personalEmail
+                        // Vì bên .NET chỉ API chi tiết mới trả về trường này
+                        EmployeeResponse fullEmpInfo = employeeRepository.getOneById(basicEmp.id());
+                        
+                        if (fullEmpInfo != null && fullEmpInfo.personalEmail() != null && !fullEmpInfo.personalEmail().isBlank()) {
+                            
+                            SendEmailEvent event = SendEmailEvent.builder()
+                                    .emailToSend(fullEmpInfo.personalEmail()) // Dùng email cá nhân lấy từ chi tiết
+                                    .subject(subject)
+                                    .htmlContent(htmlContent)
+                                    .build();
+                            
+                            rabbitTemplate.convertAndSend(emailQueue, event);
+                            count++;
+                        }
+                    } catch (Exception e) {
+                        log.error("Failed to fetch/notify employee ID: " + basicEmp.id(), e);
+                    }
+                }
+                
+                log.info(">>> Queued {} notification emails.", count);
+                
+            } catch (Exception e) {
+                log.error("Error in notification thread", e);
+            }
+        }).start();
     }
 
     // Helper method để xác định đơn vị đo lường
