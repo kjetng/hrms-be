@@ -55,7 +55,6 @@ public class CampaignService {
     private final EmployeeActivityRepository activityRepository;
     private final UserRepository userRepository;
 
-    private final EmployeeActivityRepository activityRepository;
     private final EmployeeRepository employeeRepository;
     private final ObjectMapper objectMapper;
 
