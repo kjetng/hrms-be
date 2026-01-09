@@ -34,7 +34,6 @@ import java.util.Map;
 public class BonusPointViewService {
 
     private static final Long TEST_EMP_ID = 1L;
-    private static final Long SYSTEM_EMP_ID = -1L;
 
     private final BonusPointAccountRepository accountRepo;
     private final RedemptionTransactionRepository redemptionRepo;
@@ -107,7 +106,8 @@ public class BonusPointViewService {
                             .type(HistoryType.REDEEM)
                             .points(r.getConvertedPoint())
                             .amount(r.getAmountReceived())
-                            .currency("USD")
+                            .note(r.getNote())
+                            .currency("VND")
                             .createdAt(r.getCreatedAt())
                             .build());
         }
@@ -168,7 +168,8 @@ public class BonusPointViewService {
                             .type(HistoryType.REDEEM)
                             .points(r.getConvertedPoint())
                             .amount(r.getAmountReceived())
-                            .currency("USD")
+                            .note(r.getNote())
+                            .currency("VND")
                             .createdAt(r.getCreatedAt())
                             .build());
         }
@@ -204,8 +205,8 @@ public class BonusPointViewService {
             TransferTransaction t,
             Long empId,
             Map<Long, String> employeeNameCache) {
-        Long senderId = t.getSender().getEmpId();
-        Long receiverId = t.getReceiver().getEmpId();
+        Long senderId = t.getSender() != null ? t.getSender().getEmpId() : null;
+        Long receiverId = t.getReceiver() != null ? t.getReceiver().getEmpId() : null;
 
         // 🗓️ MONTHLY
         if (t.getType() != null && t.getType() == TransferType.MONTHLY) {
@@ -218,25 +219,33 @@ public class BonusPointViewService {
                     .build();
         }
 
-        // 🎁 AWARD — prefer explicit DB type, fall back to sender==SYSTEM
-        // AWARD means points are given FROM system TO user
-        if (t.getType() == TransferType.AWARD || (t.getType() == null && senderId.equals(SYSTEM_EMP_ID))) {
+        // 🎁 AWARD — manager awards points to employee
+        // Show counterparty based on perspective: if I'm manager, show employee; if I'm
+        // employee, show manager
+        if (t.getType() == TransferType.AWARD) {
+            Long counterpartyId = senderId.equals(empId) ? receiverId : senderId;
             return HistoryItemDto.builder()
                     .id(t.getTransferId())
                     .type(HistoryType.AWARD)
                     .points(t.getNumberPoint())
+                    .counterpartyId(counterpartyId)
+                    .counterpartyName(resolveEmployeeName(counterpartyId, employeeNameCache))
                     .note(t.getNote())
                     .createdAt(t.getCreatedAt())
                     .build();
         }
 
-        // ⚠️ DEDUCT — prefer explicit DB type, fall back to receiver==SYSTEM
-        // DEDUCT means points are taken FROM user TO system
-        if (t.getType() == TransferType.DEDUCT || (t.getType() == null && receiverId.equals(SYSTEM_EMP_ID))) {
+        // ⚠️ DEDUCT — manager deducts points from employee
+        // Show counterparty based on perspective: if I'm employee, show manager; if I'm
+        // manager, show employee
+        if (t.getType() == TransferType.DEDUCT) {
+            Long counterpartyId = senderId.equals(empId) ? receiverId : senderId;
             return HistoryItemDto.builder()
                     .id(t.getTransferId())
                     .type(HistoryType.DEDUCT)
                     .points(t.getNumberPoint())
+                    .counterpartyId(counterpartyId)
+                    .counterpartyName(resolveEmployeeName(counterpartyId, employeeNameCache))
                     .note(t.getNote())
                     .createdAt(t.getCreatedAt())
                     .build();
@@ -272,11 +281,6 @@ public class BonusPointViewService {
             return null;
         if (cache.containsKey(id))
             return cache.get(id);
-
-        if (SYSTEM_EMP_ID.equals(id)) {
-            cache.put(id, "System");
-            return "System";
-        }
 
         var employee = employeeRepository.getOneById(id);
         String fullName = employee == null ? null : employee.fullName();
