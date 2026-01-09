@@ -10,4 +10,6 @@ public interface EmployeeRepository {
   EmployeeResponse getOneById(Long id);
 
   List<ManagerEmployeeResponse> getDirectReports(Long managerId);
+
+  List<EmployeeResponse> getAllEmployees();
 }

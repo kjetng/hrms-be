@@ -5,6 +5,7 @@ import org.httt2.hrms.activity.entity.id.CampaignParticipantId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface CampaignParticipantRepository extends JpaRepository<CampaignParticipant, CampaignParticipantId> {
@@ -15,6 +16,10 @@ public interface CampaignParticipantRepository extends JpaRepository<CampaignPar
     
     // Đếm số lượng người tham gia
     long countByCampaignId(Long campaignId);
+    
+    // Chỉ lấy những người đang JOINED (không lấy người đã LEFT)
+    List<CampaignParticipant> findByEmpIdAndStatus(Long empId, org.httt2.hrms.activity.entity.ParticipantStatus status);
 
-    List<CampaignParticipant> findByEmpId(Long empId);
+    // Tìm record cụ thể (để update status khi rời)
+    Optional<CampaignParticipant> findByEmpIdAndCampaignId(Long empId, Long campaignId);
 }

@@ -1,0 +1,59 @@
+
+> Task :compileJava FAILED
+C:\Users\Admin\hrms-be\src\main\java\org\httt2\hrms\activity\repository\CampaignRepository.java:3: error: cannot find symbol
+import org.httt2.hrms.activity.dto.approval.PendingCampaignDTO;
+                                           ^
+  symbol:   class PendingCampaignDTO
+  location: package org.httt2.hrms.activity.dto.approval
+C:\Users\Admin\hrms-be\src\main\java\org\httt2\hrms\activity\repository\CampaignRepository.java:42: error: cannot find symbol
+    List<PendingCampaignDTO> findCampaignsWithPendingActivities();
+         ^
+  symbol:   class PendingCampaignDTO
+  location: interface CampaignRepository
+C:\Users\Admin\hrms-be\src\main\java\org\httt2\hrms\activity\service\AdminApprovalService.java:8: error: cannot find symbol
+import org.httt2.hrms.activity.dto.approval.PendingCampaignDTO;
+                                           ^
+  symbol:   class PendingCampaignDTO
+  location: package org.httt2.hrms.activity.dto.approval
+C:\Users\Admin\hrms-be\src\main\java\org\httt2\hrms\activity\service\AdminApprovalService.java:36: error: cannot find symbol
+    public List<PendingCampaignDTO> getCampaignsWithPending() {
+                ^
+  symbol:   class PendingCampaignDTO
+  location: class AdminApprovalService
+4 errors
+
+[Incubating] Problems report is available at: file:///C:/Users/Admin/hrms-be/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileJava'.
+> Compilation failed; see the compiler output below.
+  C:\Users\Admin\hrms-be\src\main\java\org\httt2\hrms\activity\repository\CampaignRepository.java:3: error: cannot find symbol
+  import org.httt2.hrms.activity.dto.approval.PendingCampaignDTO;
+                                             ^
+    symbol:   class PendingCampaignDTO
+    location: package org.httt2.hrms.activity.dto.approval
+  C:\Users\Admin\hrms-be\src\main\java\org\httt2\hrms\activity\repository\CampaignRepository.java:42: error: cannot find symbol
+      List<PendingCampaignDTO> findCampaignsWithPendingActivities();
+           ^
+    symbol:   class PendingCampaignDTO
+    location: interface CampaignRepository
+  C:\Users\Admin\hrms-be\src\main\java\org\httt2\hrms\activity\service\AdminApprovalService.java:8: error: cannot find symbol
+  import org.httt2.hrms.activity.dto.approval.PendingCampaignDTO;
+                                             ^
+    symbol:   class PendingCampaignDTO
+    location: package org.httt2.hrms.activity.dto.approval
+  C:\Users\Admin\hrms-be\src\main\java\org\httt2\hrms\activity\service\AdminApprovalService.java:36: error: cannot find symbol
+      public List<PendingCampaignDTO> getCampaignsWithPending() {
+                  ^
+    symbol:   class PendingCampaignDTO
+    location: class AdminApprovalService
+  4 errors
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights.
+
+BUILD FAILED in 4s
+1 actionable task: 1 executed
