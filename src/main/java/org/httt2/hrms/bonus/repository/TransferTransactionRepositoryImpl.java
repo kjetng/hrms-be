@@ -17,8 +17,6 @@ import java.util.List;
 public class TransferTransactionRepositoryImpl
         implements TransferTransactionRepositoryCustom {
 
-    private static final Long SYSTEM_EMP_ID = -1L;
-
     @PersistenceContext
     private EntityManager em;
 
@@ -29,8 +27,7 @@ public class TransferTransactionRepositoryImpl
             LocalDate to,
             List<HistoryType> types,
             String sortField,
-            SortDirection direction
-    ) {
+            SortDirection direction) {
         // delegate to limited variant with no limit
         return findFilteredForEmployee(empId, from, to, types, sortField, direction, null);
     }
@@ -43,8 +40,7 @@ public class TransferTransactionRepositoryImpl
             List<HistoryType> types,
             String sortField,
             SortDirection direction,
-            Integer limit
-    ) {
+            Integer limit) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<TransferTransaction> cq = cb.createQuery(TransferTransaction.class);
         Root<TransferTransaction> root = cq.from(TransferTransaction.class);
@@ -56,8 +52,7 @@ public class TransferTransactionRepositoryImpl
         // basic: transfers involving empId
         predicates.add(cb.or(
                 cb.equal(sender.get("empId"), empId),
-                cb.equal(receiver.get("empId"), empId)
-        ));
+                cb.equal(receiver.get("empId"), empId)));
 
         // date range
         if (from != null) {
@@ -76,28 +71,20 @@ public class TransferTransactionRepositoryImpl
                         typePreds.add(cb.equal(root.get("type"), TransferType.MONTHLY));
                         break;
                     case AWARD:
-                        typePreds.add(cb.or(
-                                cb.equal(root.get("type"), TransferType.AWARD),
-                                cb.and(cb.isNull(root.get("type")), cb.equal(sender.get("empId"), SYSTEM_EMP_ID))
-                        ));
+                        typePreds.add(cb.equal(root.get("type"), TransferType.AWARD));
                         break;
                     case DEDUCT:
-                        typePreds.add(cb.or(
-                                cb.equal(root.get("type"), TransferType.DEDUCT),
-                                cb.and(cb.isNull(root.get("type")), cb.equal(receiver.get("empId"), SYSTEM_EMP_ID))
-                        ));
+                        typePreds.add(cb.equal(root.get("type"), TransferType.DEDUCT));
                         break;
                     case TRANSFER_SENT:
                         typePreds.add(cb.and(
                                 cb.equal(sender.get("empId"), empId),
-                                cb.or(cb.isNull(root.get("type")), cb.equal(root.get("type"), TransferType.TRANSFER))
-                        ));
+                                cb.or(cb.isNull(root.get("type")), cb.equal(root.get("type"), TransferType.TRANSFER))));
                         break;
                     case TRANSFER_RECEIVED:
                         typePreds.add(cb.and(
                                 cb.equal(receiver.get("empId"), empId),
-                                cb.or(cb.isNull(root.get("type")), cb.equal(root.get("type"), TransferType.TRANSFER))
-                        ));
+                                cb.or(cb.isNull(root.get("type")), cb.equal(root.get("type"), TransferType.TRANSFER))));
                         break;
                     default:
                         break;
@@ -136,8 +123,7 @@ public class TransferTransactionRepositoryImpl
             Long empId,
             LocalDate from,
             LocalDate to,
-            List<HistoryType> types
-    ) {
+            List<HistoryType> types) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<TransferTransaction> root = cq.from(TransferTransaction.class);
@@ -147,8 +133,7 @@ public class TransferTransactionRepositoryImpl
         List<Predicate> predicates = new ArrayList<>();
         predicates.add(cb.or(
                 cb.equal(sender.get("empId"), empId),
-                cb.equal(receiver.get("empId"), empId)
-        ));
+                cb.equal(receiver.get("empId"), empId)));
 
         if (from != null) {
             predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), from.atStartOfDay()));
@@ -165,28 +150,20 @@ public class TransferTransactionRepositoryImpl
                         typePreds.add(cb.equal(root.get("type"), TransferType.MONTHLY));
                         break;
                     case AWARD:
-                        typePreds.add(cb.or(
-                                cb.equal(root.get("type"), TransferType.AWARD),
-                                cb.and(cb.isNull(root.get("type")), cb.equal(sender.get("empId"), SYSTEM_EMP_ID))
-                        ));
+                        typePreds.add(cb.equal(root.get("type"), TransferType.AWARD));
                         break;
                     case DEDUCT:
-                        typePreds.add(cb.or(
-                                cb.equal(root.get("type"), TransferType.DEDUCT),
-                                cb.and(cb.isNull(root.get("type")), cb.equal(receiver.get("empId"), SYSTEM_EMP_ID))
-                        ));
+                        typePreds.add(cb.equal(root.get("type"), TransferType.DEDUCT));
                         break;
                     case TRANSFER_SENT:
                         typePreds.add(cb.and(
                                 cb.equal(sender.get("empId"), empId),
-                                cb.or(cb.isNull(root.get("type")), cb.equal(root.get("type"), TransferType.TRANSFER))
-                        ));
+                                cb.or(cb.isNull(root.get("type")), cb.equal(root.get("type"), TransferType.TRANSFER))));
                         break;
                     case TRANSFER_RECEIVED:
                         typePreds.add(cb.and(
                                 cb.equal(receiver.get("empId"), empId),
-                                cb.or(cb.isNull(root.get("type")), cb.equal(root.get("type"), TransferType.TRANSFER))
-                        ));
+                                cb.or(cb.isNull(root.get("type")), cb.equal(root.get("type"), TransferType.TRANSFER))));
                         break;
                     default:
                         break;
