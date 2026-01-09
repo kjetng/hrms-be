@@ -12,5 +12,7 @@ public record EmployeeResponse(
         Long managerId,
         String status,
         String departmentName,
+        String personalEmail,
+        Long departmentId,
         String positionTitle) {
 }

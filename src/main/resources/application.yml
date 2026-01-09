@@ -20,7 +20,7 @@ spring:
       leak-detection-threshold: 60000
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
@@ -59,8 +59,12 @@ server:
 # Logging
 logging:
   level:
-    org.httt2.hrms: TRACE
+    root: INFO                        # Log chung của hệ thống
+    org.httt2.hrms: DEBUG             # Log code của bạn (Service, Controller...)
+    org.springframework.web: DEBUG    # Log để xem Request có vào tới Controller không
+    org.springframework.amqp: DEBUG   # Log để xem RabbitMQ có bắn tin đi không
     org.hibernate.SQL: DEBUG
+    
 
 application:
   security:
