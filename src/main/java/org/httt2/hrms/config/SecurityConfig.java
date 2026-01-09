@@ -33,6 +33,7 @@ public class SecurityConfig {
             // Public endpoints
             .requestMatchers("/auth/register", "/auth/login").permitAll()
             .requestMatchers("/api/onboarding/**").permitAll()
+            .requestMatchers("/api/credits/accounts").permitAll()
             .requestMatchers("/error").permitAll()
             .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
             // All other endpoints require authentication
