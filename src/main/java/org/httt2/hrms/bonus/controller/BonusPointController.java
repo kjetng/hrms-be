@@ -9,10 +9,13 @@ import org.httt2.hrms.bonus.dto.RedemptionTransactionDto;
 import org.httt2.hrms.bonus.dto.TransferRequestDto;
 import org.httt2.hrms.bonus.dto.TransferTransactionDto;
 import org.httt2.hrms.bonus.dto.TeamMembersResponseDto;
+import org.httt2.hrms.bonus.dto.CreateBonusPointAccountRequest;
+import org.httt2.hrms.bonus.dto.BonusPointAccountDto;
 import org.httt2.hrms.bonus.service.BonusPointRedemptionService;
 import org.httt2.hrms.bonus.service.BonusPointTransferService;
 import org.httt2.hrms.bonus.dto.BonusPointViewQueryDto;
 import org.httt2.hrms.bonus.service.BonusPointViewService;
+import org.httt2.hrms.bonus.service.BonusPointAccountService;
 import org.httt2.hrms.bonus.service.TeamMemberViewService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +30,7 @@ public class BonusPointController {
     private final TeamMemberViewService teamMemberViewService;
     private final BonusPointTransferService transferService;
     private final BonusPointRedemptionService redemptionService;
+    private final BonusPointAccountService accountService;
 
     @GetMapping("/balance")
     public ResponseEntity<BonusPointBalanceDto> getBalance() {
@@ -57,5 +61,11 @@ public class BonusPointController {
     public ResponseEntity<RedemptionTransactionDto> redeemPoints(
             @Valid @RequestBody RedeemRequestDto request) {
         return ResponseEntity.ok(redemptionService.redeem(request));
+    }
+
+    @PostMapping("/accounts")
+    public ResponseEntity<BonusPointAccountDto> createBonusPointAccount(
+            @Valid @RequestBody CreateBonusPointAccountRequest request) {
+        return ResponseEntity.ok(accountService.createAccount(request));
     }
 }
