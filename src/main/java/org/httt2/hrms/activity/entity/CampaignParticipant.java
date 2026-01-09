@@ -26,6 +26,17 @@ public class CampaignParticipant {
   @JoinColumn(name = "campaign_id")
   private Campaign campaign;
 
+  private Double currentScore;
+
   private LocalDateTime joinedAt;
+
+  @Enumerated(EnumType.STRING)
+  private ParticipantStatus status;
+
+  @PrePersist
+  protected void onCreate() {
+    if (currentScore == null) currentScore = 0.0;
+    if (status == null) status = ParticipantStatus.JOINED; // Mặc định khi tạo mới là JOINED
+  }
 }
 

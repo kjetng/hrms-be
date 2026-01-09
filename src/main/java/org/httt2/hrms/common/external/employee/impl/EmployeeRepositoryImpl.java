@@ -21,6 +21,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import org.httt2.hrms.common.external.employee.dto.EmployeeListResponse;
+
 import java.util.List;
 
 @Repository
@@ -107,6 +109,46 @@ public class EmployeeRepositoryImpl implements EmployeeRepository {
     }
   }
 
+  @Override
+  public List<EmployeeResponse> getAllEmployees() {
+    if (baseUrl == null || baseUrl.isBlank()) {
+      log.warn("Employee service base url is not configured");
+      return List.of();
+    }
+
+    // "Hack": Lấy pageSize lớn để lấy hết danh sách
+    String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
+        .path("/api/employees") 
+        .queryParam("page", 1)
+        .queryParam("pageSize", 2000) 
+        .build()
+        .toUriString();
+
+    HttpHeaders headers = buildHeaders();
+    HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+    try {
+      // Gọi API và hứng bằng EmployeeListResponse (Wrapper)
+      ResponseEntity<EmployeeListResponse> response = restTemplate.exchange(
+          url,
+          HttpMethod.GET,
+          entity,
+          EmployeeListResponse.class);
+      
+      if (response.getBody() != null && response.getBody().getData() != null) {
+        return response.getBody().getData();
+      }
+      return List.of();
+    } catch (RestClientResponseException e) {
+      log.warn("Employee service error: status={} body={}", e.getRawStatusCode(), e.getResponseBodyAsString());
+      return List.of();
+    } catch (RestClientException e) {
+      log.warn("Failed to call employee service for getAllEmployees", e);
+      return List.of();
+    }
+  }
+  
+
   private HttpHeaders buildHeaders() {
     HttpHeaders headers = new HttpHeaders();
     headers.setAccept(List.of(MediaType.APPLICATION_JSON));
@@ -127,4 +169,8 @@ public class EmployeeRepositoryImpl implements EmployeeRepository {
     }
     return token;
   }
+
+
+  
 }
+

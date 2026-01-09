@@ -1,4 +1,4 @@
-package org.httt2.hrms.config;
+/*package org.httt2.hrms.config;
 
 import lombok.RequiredArgsConstructor;
 import org.httt2.hrms.activity.entity.Campaign;
@@ -84,4 +84,4 @@ public class DataInitializer {
             }
         };
     }
-}
+}*/
