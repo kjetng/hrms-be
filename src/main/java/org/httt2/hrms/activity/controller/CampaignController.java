@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.httt2.hrms.activity.dto.ActivitySubmissionRequest;
 import org.httt2.hrms.activity.dto.CampaignCreateRequest;
+import org.httt2.hrms.activity.dto.CampaignStatsResponse;
+import org.httt2.hrms.activity.dto.CampaignWithStatsResponse;
 import org.httt2.hrms.activity.dto.leaderboard.LeaderboardEntryDTO;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -68,7 +70,7 @@ public class CampaignController {
             return ResponseEntity.internalServerError().build();
         }
     }
-    
+
     // EMPLOYEE:Lấy danh sách campaign đang mở (Cho phần "You Can Join")
     @GetMapping("/active")
     public ResponseEntity<List<Campaign>> getActiveCampaigns(HttpServletRequest request) { // Thêm request
@@ -139,8 +141,7 @@ public class CampaignController {
     public ResponseEntity<?> registerCampaign(
             @PathVariable Long id,
             Principal principal,
-            HttpServletRequest request
-    ) {
+            HttpServletRequest request) {
         if (principal == null) {
             return ResponseEntity.status(401).body("Unauthorized. Please login first.");
         }
@@ -148,7 +149,7 @@ public class CampaignController {
         try {
             String userEmail = principal.getName();
             Long empId = jwtService.extractEmpIdFromRequest(request);
-            
+
             campaignService.registerForCampaign(id, userEmail, empId);
             return ResponseEntity.ok("Successfully registered for the campaign!");
         } catch (RuntimeException e) {
@@ -161,24 +162,53 @@ public class CampaignController {
     // EMPLOYEE: Lấy danh sách campaign của tôi (Cho phần "My Active Campaigns")
     @GetMapping("/my-campaigns")
     public ResponseEntity<List<Campaign>> getMyCampaigns(Principal principal, HttpServletRequest request) {
-        if (principal == null) return ResponseEntity.status(401).build();
+        if (principal == null)
+            return ResponseEntity.status(401).build();
 
         Long empId = jwtService.extractEmpIdFromRequest(request);
-        
+
         return ResponseEntity.ok(campaignService.getMyCampaigns(principal.getName(), empId));
     }
 
-    
+    /**
+     * Get campaign statistics for admin dashboard.
+     * Returns counts of total, active, completed, and draft campaigns.
+     */
+    @GetMapping("/stats")
+    public ResponseEntity<CampaignStatsResponse> getCampaignStats() {
+        try {
+            CampaignStatsResponse stats = campaignService.getCampaignStats();
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * Get all campaigns with participation statistics.
+     * Enhanced version that includes participants count, total distance, and
+     * pending submissions.
+     */
+    @GetMapping("/with-stats")
+    public ResponseEntity<List<CampaignWithStatsResponse>> getAllCampaignsWithStats() {
+        try {
+            List<CampaignWithStatsResponse> campaigns = campaignService.getAllCampaignsWithStats();
+            return ResponseEntity.ok(campaigns);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     // SUBMIT ACTIVITY
     @PostMapping("/{id}/activities")
     public ResponseEntity<?> submitActivity(
             @PathVariable Long id,
             @RequestBody ActivitySubmissionRequest request,
-            HttpServletRequest httpServletRequest
-    ) {
+            HttpServletRequest httpServletRequest) {
         try {
             Long empId = jwtService.extractEmpIdFromRequest(httpServletRequest);
-            if (empId == null) return ResponseEntity.status(401).body("Employee ID not found in token");
+            if (empId == null)
+                return ResponseEntity.status(401).body("Employee ID not found in token");
 
             EmployeeActivity activity = campaignService.submitActivity(id, empId, request);
             return ResponseEntity.ok(activity);
@@ -189,16 +219,15 @@ public class CampaignController {
         }
     }
 
-
     // VIEW SUBMISSIONS (HISTORY)
     @GetMapping("/{id}/activities/me")
     public ResponseEntity<?> getMyActivities(
             @PathVariable Long id,
-            HttpServletRequest httpServletRequest
-    ) {
+            HttpServletRequest httpServletRequest) {
         try {
             Long empId = jwtService.extractEmpIdFromRequest(httpServletRequest);
-            if (empId == null) return ResponseEntity.status(401).body("Employee ID not found in token");
+            if (empId == null)
+                return ResponseEntity.status(401).body("Employee ID not found in token");
 
             List<EmployeeActivity> activities = campaignService.getMyCampaignActivities(id, empId);
             return ResponseEntity.ok(activities);
@@ -207,16 +236,15 @@ public class CampaignController {
         }
     }
 
-
     // DELETE ACTIVITY
     @DeleteMapping("/activities/{activityId}")
     public ResponseEntity<?> deleteActivity(
             @PathVariable Long activityId,
-            HttpServletRequest request
-    ) {
+            HttpServletRequest request) {
         try {
             Long empId = jwtService.extractEmpIdFromRequest(request);
-            if (empId == null) return ResponseEntity.status(401).body("Unauthorized");
+            if (empId == null)
+                return ResponseEntity.status(401).body("Unauthorized");
 
             campaignService.deleteActivity(activityId, empId);
             return ResponseEntity.ok("Activity deleted successfully");
@@ -227,17 +255,16 @@ public class CampaignController {
         }
     }
 
-
     // UPDATE ACTIVITY
     @PutMapping("/activities/{activityId}")
     public ResponseEntity<?> updateActivity(
             @PathVariable Long activityId,
             @RequestBody ActivitySubmissionRequest request,
-            HttpServletRequest httpServletRequest
-    ) {
+            HttpServletRequest httpServletRequest) {
         try {
             Long empId = jwtService.extractEmpIdFromRequest(httpServletRequest);
-            if (empId == null) return ResponseEntity.status(401).body("Unauthorized");
+            if (empId == null)
+                return ResponseEntity.status(401).body("Unauthorized");
 
             EmployeeActivity updatedActivity = campaignService.updateActivity(activityId, empId, request);
             return ResponseEntity.ok(updatedActivity);
@@ -259,24 +286,25 @@ public class CampaignController {
     public ResponseEntity<?> getMyRank(@PathVariable Long id, HttpServletRequest request) {
         try {
             Long empId = jwtService.extractEmpIdFromRequest(request);
-            if (empId == null) return ResponseEntity.status(401).body("Employee ID not found in token");
-            
+            if (empId == null)
+                return ResponseEntity.status(401).body("Employee ID not found in token");
+
             return ResponseEntity.ok(campaignService.getMyRank(id, empId));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
         }
     }
 
-
     // 3. API Rời chiến dịch
     @DeleteMapping("/{id}/leave")
     public ResponseEntity<?> leaveCampaign(@PathVariable Long id, HttpServletRequest request) {
         try {
             Long empId = jwtService.extractEmpIdFromRequest(request);
-            if (empId == null) return ResponseEntity.status(401).body("Employee ID not found in token");
+            if (empId == null)
+                return ResponseEntity.status(401).body("Employee ID not found in token");
 
             campaignService.leaveCampaign(id, empId);
-            
+
             return ResponseEntity.ok("Successfully left the campaign.");
         } catch (RuntimeException e) {
             // Lỗi Business Logic (Campaign closed, chưa join...) trả về 400
@@ -286,7 +314,6 @@ public class CampaignController {
             return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
         }
     }
-
 
     @PostMapping("/{id}/close")
     public ResponseEntity<?> closeCampaign(@PathVariable Long id) {
@@ -300,4 +327,3 @@ public class CampaignController {
         }
     }
 }
-

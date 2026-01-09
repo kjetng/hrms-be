@@ -4,8 +4,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.httt2.hrms.activity.entity.Campaign;
 import org.httt2.hrms.activity.repository.CampaignRepository;
+import org.httt2.hrms.activity.repository.EmployeeActivityRepository;
 import org.springframework.stereotype.Service;
 import org.httt2.hrms.activity.dto.CampaignCreateRequest;
+import org.httt2.hrms.activity.dto.CampaignStatsResponse;
+import org.httt2.hrms.activity.dto.CampaignWithStatsResponse;
 
 import org.httt2.hrms.auth.repository.UserRepository;
 
@@ -49,9 +52,9 @@ public class CampaignService {
 
     private final CampaignRepository campaignRepository;
     private final CampaignParticipantRepository participantRepository;
+    private final EmployeeActivityRepository activityRepository;
     private final UserRepository userRepository;
 
-    private final EmployeeActivityRepository activityRepository;
     private final EmployeeRepository employeeRepository;
     private final ObjectMapper objectMapper;
 
@@ -89,7 +92,7 @@ public class CampaignService {
             // Dùng hàm query mới để loại bỏ cả JOINED và LEFT
             return campaignRepository.findAvailableCampaignsForEmployee(empId);
         }
-        
+
         // Fallback cho trường hợp guest hoặc admin xem chung
         log.info("Fetching all active campaigns (Guest mode)");
         return campaignRepository.findByStatusOrderByCreatedAtDesc("active");
@@ -166,9 +169,10 @@ public class CampaignService {
         existingCampaign.setPrimaryMetric(determinePrimaryMetric(request.getCampaignType()));
 
         // 6. Cập nhật Status dựa trên ngày tháng mới (Optional - Logic thông minh)
-        // Ví dụ: Nếu sửa ngày bắt đầu thành tương lai -> status về 'draft' hoặc 'upcoming'
+        // Ví dụ: Nếu sửa ngày bắt đầu thành tương lai -> status về 'draft' hoặc
+        // 'upcoming'
         // Ở đây mình giữ nguyên logic đơn giản là lưu lại thôi.
-        
+
         return campaignRepository.save(existingCampaign);
     }
 
@@ -176,71 +180,73 @@ public class CampaignService {
     public Campaign publishCampaign(Long id) {
         Campaign campaign = campaignRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Campaign not found"));
-                
+
         if (!"draft".equalsIgnoreCase(campaign.getStatus())) {
             throw new IllegalStateException("Only draft campaigns can be published");
         }
-        
+
         campaign.setStatus("active");
         Campaign savedCampaign = campaignRepository.save(campaign);
-        
+
         // Gọi hàm gửi email
         notifyAllEmployeesAboutNewCampaign(savedCampaign);
-        
+
         return savedCampaign;
     }
-    
+
     private void notifyAllEmployeesAboutNewCampaign(Campaign campaign) {
-        // Chạy trong Thread mới để không làm admin phải chờ lâu (vì phải gọi API chi tiết nhiều lần)
+        // Chạy trong Thread mới để không làm admin phải chờ lâu (vì phải gọi API chi
+        // tiết nhiều lần)
         new Thread(() -> {
             try {
                 log.info("--- START NOTIFYING EMPLOYEES (Fetching details for personalEmail) ---");
-                
+
                 // 1. Lấy danh sách sơ bộ (chỉ có ID, Name, chưa có Personal Email)
                 List<EmployeeResponse> basicList = employeeRepository.getAllEmployees();
-                
+
                 if (basicList == null || basicList.isEmpty()) {
                     log.warn("No employees found.");
                     return;
                 }
-                
+
                 String subject = "🚀 New Campaign Published: " + campaign.getCampaignName();
                 String htmlContent = String.format(
-                    "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>" +
-                    "<h2 style='color: #2c3e50;'>🎯 New Campaign Published!</h2>" +
-                    "<div style='background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;'>" +
-                    "<h3 style='color: #27ae60; margin-top: 0;'>%s</h3>" +
-                    "<p><strong>Description:</strong> %s</p>" +
-                    "<p><strong>Type:</strong> %s | <strong>Goal:</strong> %s</p>" +
-                    "<p><strong>Duration:</strong> %s to %s</p>" +
-                    "</div>" +
-                    "<p>Log in to HRMS to join now!</p>" +
-                    "</div>",
-                    campaign.getCampaignName(),
-                    campaign.getDescription() != null ? campaign.getDescription() : "",
-                    campaign.getCampaignType(),
-                    campaign.getTargetGoal(),
-                    campaign.getStartDate(),
-                    campaign.getEndDate()
-                );
-                
+                        "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>" +
+                                "<h2 style='color: #2c3e50;'>🎯 New Campaign Published!</h2>" +
+                                "<div style='background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;'>"
+                                +
+                                "<h3 style='color: #27ae60; margin-top: 0;'>%s</h3>" +
+                                "<p><strong>Description:</strong> %s</p>" +
+                                "<p><strong>Type:</strong> %s | <strong>Goal:</strong> %s</p>" +
+                                "<p><strong>Duration:</strong> %s to %s</p>" +
+                                "</div>" +
+                                "<p>Log in to HRMS to join now!</p>" +
+                                "</div>",
+                        campaign.getCampaignName(),
+                        campaign.getDescription() != null ? campaign.getDescription() : "",
+                        campaign.getCampaignType(),
+                        campaign.getTargetGoal(),
+                        campaign.getStartDate(),
+                        campaign.getEndDate());
+
                 int count = 0;
-                
+
                 // 2. Duyệt qua từng nhân viên để lấy Email thật
                 for (EmployeeResponse basicEmp : basicList) {
                     try {
                         // QUAN TRỌNG: Gọi API chi tiết để lấy personalEmail
                         // Vì bên .NET chỉ API chi tiết mới trả về trường này
                         EmployeeResponse fullEmpInfo = employeeRepository.getOneById(basicEmp.id());
-                        
-                        if (fullEmpInfo != null && fullEmpInfo.personalEmail() != null && !fullEmpInfo.personalEmail().isBlank()) {
-                            
+
+                        if (fullEmpInfo != null && fullEmpInfo.personalEmail() != null
+                                && !fullEmpInfo.personalEmail().isBlank()) {
+
                             SendEmailEvent event = SendEmailEvent.builder()
                                     .emailToSend(fullEmpInfo.personalEmail()) // Dùng email cá nhân lấy từ chi tiết
                                     .subject(subject)
                                     .htmlContent(htmlContent)
                                     .build();
-                            
+
                             rabbitTemplate.convertAndSend(emailQueue, event);
                             count++;
                         }
@@ -248,9 +254,9 @@ public class CampaignService {
                         log.error("Failed to fetch/notify employee ID: " + basicEmp.id(), e);
                     }
                 }
-                
+
                 log.info(">>> Queued {} notification emails.", count);
-                
+
             } catch (Exception e) {
                 log.error("Error in notification thread", e);
             }
@@ -284,7 +290,8 @@ public class CampaignService {
         // 2. Validate User
         userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User account not found"));
-        if (empId == null) throw new RuntimeException("Account not linked to employee profile.");
+        if (empId == null)
+            throw new RuntimeException("Account not linked to employee profile.");
 
         // 3. CHECK LOGIC: Đã từng tham gia chưa?
         Optional<CampaignParticipant> existing = participantRepository.findByEmpIdAndCampaignId(empId, campaignId);
@@ -336,31 +343,105 @@ public class CampaignService {
         }
 
         // 3. XỬ LÝ RỜI CHIẾN DỊCH (Tối ưu hóa nhờ @Formula)
-        
+
         // A. Cập nhật trạng thái và Reset điểm cá nhân
-        // Việc reset currentScore về 0 sẽ làm cho @Formula totalDistance tự động giảm khi query lại
+        // Việc reset currentScore về 0 sẽ làm cho @Formula totalDistance tự động giảm
+        // khi query lại
         participant.setStatus(ParticipantStatus.LEFT);
-        participant.setCurrentScore(0.0); 
+        participant.setCurrentScore(0.0);
         participantRepository.save(participant);
 
         // B. Xóa sạch lịch sử hoạt động (Hard Delete)
         activityRepository.deleteAllByCampaign_CampaignIdAndEmpId(campaignId, empId);
-        // Vì Entity Campaign dùng @Formula, nó sẽ tự tính lại chính xác khi API gọi GET danh sách.
-        
+        // Vì Entity Campaign dùng @Formula, nó sẽ tự tính lại chính xác khi API gọi GET
+        // danh sách.
+
         log.info("Employee {} left campaign {}. Activities deleted and score reset.", empId, campaignId);
     }
 
-    //  EMPLOYEE: Lấy danh sách Campaign mà nhân viên ĐÃ đăng ký
+    // EMPLOYEE: Lấy danh sách Campaign mà nhân viên ĐÃ đăng ký
     public List<Campaign> getMyCampaigns(String userEmail, Long empId) {
         userRepository.findByEmail(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
-        if (empId == null) return List.of();
+        if (empId == null)
+            return List.of();
 
         // Chỉ lấy những campaign đang ở trạng thái JOINED
-        List<CampaignParticipant> participants = participantRepository.findByEmpIdAndStatus(empId, ParticipantStatus.JOINED);
+        List<CampaignParticipant> participants = participantRepository.findByEmpIdAndStatus(empId,
+                ParticipantStatus.JOINED);
 
         return participants.stream()
                 .map(CampaignParticipant::getCampaign)
                 .toList();
+    }
+
+    /**
+     * Get campaign statistics for admin dashboard.
+     * Returns counts of campaigns by status.
+     */
+    public CampaignStatsResponse getCampaignStats() {
+        log.info("Fetching campaign statistics for dashboard");
+
+        long total = campaignRepository.count();
+        long active = campaignRepository.countByStatus("active");
+        long completed = campaignRepository.countByStatus("completed");
+        long draft = campaignRepository.countByStatus("draft");
+
+        return CampaignStatsResponse.builder()
+                .totalCampaigns(total)
+                .activeCampaigns(active)
+                .completedCampaigns(completed)
+                .draftCampaigns(draft)
+                .build();
+    }
+
+    /**
+     * Get all campaigns with participation statistics.
+     * Enhanced version of getAllCampaigns with participants, totalDistance, and
+     * pendingSubmissions.
+     */
+    public List<CampaignWithStatsResponse> getAllCampaignsWithStats() {
+        log.info("Fetching all campaigns with participation stats");
+
+        List<Campaign> campaigns = campaignRepository.findAllByOrderByCreatedAtDesc();
+
+        return campaigns.stream()
+                .map(this::mapToCampaignWithStats)
+                .toList();
+    }
+
+    /**
+     * Map a Campaign entity to CampaignWithStatsResponse with statistics.
+     */
+    private CampaignWithStatsResponse mapToCampaignWithStats(Campaign campaign) {
+        Long campaignId = campaign.getCampaignId();
+
+        // Count participants
+        long participants = participantRepository.countByCampaignId(campaignId);
+
+        // Count pending submissions
+        long pendingSubmissions = activityRepository.countByCampaign_CampaignIdAndStatus(campaignId, "pending");
+
+        // For totalDistance, we would need to parse the metrics JSON field
+        // For MVP, we return 0.0 - this can be enhanced later
+        double totalDistance = 0.0;
+
+        return CampaignWithStatsResponse.builder()
+                .campaignId(campaignId)
+                .campaignName(campaign.getCampaignName())
+                .campaignType(campaign.getCampaignType())
+                .primaryMetric(campaign.getPrimaryMetric())
+                .description(campaign.getDescription())
+                .startDate(campaign.getStartDate())
+                .endDate(campaign.getEndDate())
+                .startTime(campaign.getStartTime())
+                .endTime(campaign.getEndTime())
+                .status(campaign.getStatus())
+                .imageUrl(campaign.getImageUrl())
+                .createdAt(campaign.getCreatedAt())
+                .participants(participants)
+                .totalDistance(totalDistance)
+                .pendingSubmissions(pendingSubmissions)
+                .build();
     }
 
     @Transactional
@@ -370,10 +451,10 @@ public class CampaignService {
                 .orElseThrow(() -> new RuntimeException("Campaign not found"));
 
         // b. Validate: Ngày hoạt động phải nằm trong thời gian diễn ra Campaign
-        if (request.getActivityDate().isBefore(campaign.getStartDate()) || 
-            request.getActivityDate().isAfter(campaign.getEndDate())) {
-            throw new IllegalArgumentException("Activity date must be within campaign duration (" 
-                + campaign.getStartDate() + " to " + campaign.getEndDate() + ")");
+        if (request.getActivityDate().isBefore(campaign.getStartDate()) ||
+                request.getActivityDate().isAfter(campaign.getEndDate())) {
+            throw new IllegalArgumentException("Activity date must be within campaign duration ("
+                    + campaign.getStartDate() + " to " + campaign.getEndDate() + ")");
         }
 
         // c. Validate: Employee đã join campaign chưa? (Optional)
@@ -440,17 +521,17 @@ public class CampaignService {
 
         // 4. Validate Date Range (Giống hàm submit)
         Campaign campaign = activity.getCampaign(); // Lấy chiến dịch từ activity
-        
-        if (request.getActivityDate().isBefore(campaign.getStartDate()) || 
-            request.getActivityDate().isAfter(campaign.getEndDate())) {
-            throw new IllegalArgumentException("Activity date must be within campaign duration (" 
-                + campaign.getStartDate() + " to " + campaign.getEndDate() + ")");
+
+        if (request.getActivityDate().isBefore(campaign.getStartDate()) ||
+                request.getActivityDate().isAfter(campaign.getEndDate())) {
+            throw new IllegalArgumentException("Activity date must be within campaign duration ("
+                    + campaign.getStartDate() + " to " + campaign.getEndDate() + ")");
         }
 
         // 5. Cập nhật thông tin
         activity.setActivityDate(request.getActivityDate());
         activity.setMetrics(request.getMetrics());
-        
+
         // Nếu có ảnh mới thì update
         if (request.getProofImage() != null && !request.getProofImage().isEmpty()) {
             activity.setProofImage(request.getProofImage());
@@ -459,21 +540,21 @@ public class CampaignService {
         // 6. Lưu lại
         return activityRepository.save(activity);
     }
-    
 
     // ----------------------------------------------------------------
     // 1. LẤY BẢNG XẾP HẠNG (ĐÃ FIX LOGIC TÍNH TỔNG)
     // ----------------------------------------------------------------
     public List<LeaderboardEntryDTO> getLeaderboard(Long campaignId) {
         // A. Lấy tất cả activity đã APPROVE
-        List<EmployeeActivity> activities = activityRepository.findByCampaign_CampaignIdAndStatus(campaignId, "approved");
+        List<EmployeeActivity> activities = activityRepository.findByCampaign_CampaignIdAndStatus(campaignId,
+                "approved");
 
         // B. Tính tổng điểm (Group by EmployeeID)
         Map<Long, LeaderboardEntryDTO> statsMap = new HashMap<>();
 
         for (EmployeeActivity act : activities) {
-            double distance = parseDistance(act.getMetrics()); 
-            
+            double distance = parseDistance(act.getMetrics());
+
             statsMap.compute(act.getEmpId(), (k, v) -> {
                 // 1. Nếu chưa có thì khởi tạo mới
                 if (v == null) {
@@ -488,12 +569,12 @@ public class CampaignService {
                 // 2. QUAN TRỌNG: Luôn cộng dồn distance (kể cả vừa mới tạo xong)
                 v.setTotalPoints(v.getTotalPoints() + distance);
                 v.setCompletedActivities(v.getCompletedActivities() + 1);
-                
+
                 // 3. Cập nhật ngày hoạt động gần nhất
                 if (act.getCreatedAt().isAfter(v.getLastActivityDate())) {
                     v.setLastActivityDate(act.getCreatedAt());
                 }
-                
+
                 return v;
             });
         }
@@ -506,7 +587,7 @@ public class CampaignService {
         for (int i = 0; i < leaderboard.size(); i++) {
             LeaderboardEntryDTO entry = leaderboard.get(i);
             entry.setRank(i + 1);
-            
+
             // Làm tròn 2 số thập phân
             double roundedPoints = Math.round(entry.getTotalPoints() * 100.0) / 100.0;
             entry.setTotalPoints(roundedPoints);
@@ -514,15 +595,16 @@ public class CampaignService {
             try {
                 // Gọi sang .NET lấy thông tin
                 EmployeeResponse emp = employeeRepository.getOneById(entry.getEmployeeId());
-                
+
                 if (emp != null) {
                     // 1. Set Tên
-                    entry.setEmployeeName(emp.fullName() != null ? emp.fullName() : "Employee #" + entry.getEmployeeId());
-                    
+                    entry.setEmployeeName(
+                            emp.fullName() != null ? emp.fullName() : "Employee #" + entry.getEmployeeId());
+
                     // 2. 👇 LOGIC MỚI: Lấy ID từ .NET -> Map sang Tên thủ công
                     String deptName = getDepartmentNameById(emp.departmentId());
                     entry.setDepartment(deptName);
-                    
+
                 } else {
                     entry.setEmployeeName("Employee #" + entry.getEmployeeId());
                     entry.setDepartment("N/A");
@@ -539,11 +621,12 @@ public class CampaignService {
 
     // Helper method để lấy tên phòng ban từ ID
     private String getDepartmentNameById(Long deptId) {
-        if (deptId == null) return "Unknown Dept";
-        
+        if (deptId == null)
+            return "Unknown Dept";
+
         return switch (deptId.intValue()) {
             case 1 -> "Engineering";
-            case 2 -> "Product";       
+            case 2 -> "Product";
             case 3 -> "Quality Assurance";
             case 4 -> "DevOps";
             case 5 -> "Data & Analytics";
@@ -591,12 +674,14 @@ public class CampaignService {
     // Helper parse JSON
     private double parseDistance(String metricsJson) {
         try {
-            if (metricsJson == null || metricsJson.isEmpty()) return 0.0;
+            if (metricsJson == null || metricsJson.isEmpty())
+                return 0.0;
             JsonNode node = objectMapper.readTree(metricsJson);
             return node.has("distance") ? node.get("distance").asDouble() : 0.0;
-        } catch (Exception e) { return 0.0; }
-    } 
-
+        } catch (Exception e) {
+            return 0.0;
+        }
+    }
 
     // ADMIN: Đóng chiến dịch (Close Campaign)
     public Campaign closeCampaign(Long id) {
@@ -610,17 +695,16 @@ public class CampaignService {
 
         // Validate 2: Chỉ đóng được khi không còn activity pending
         if (activityRepository.existsByCampaign_CampaignIdAndStatus(id, "pending")) {
-            throw new IllegalStateException("Cannot close campaign. There are pending approvals that must be processed first.");
+            throw new IllegalStateException(
+                    "Cannot close campaign. There are pending approvals that must be processed first.");
         }
 
         // Cập nhật trạng thái thành 'completed'
         // Lưu ý: Dùng từ khóa 'completed' để khớp với logic filter ở Frontend
         campaign.setStatus("completed");
-        
+
         // (Optional) Tại đây có thể trigger tính toán reward, notification...
-        
+
         return campaignRepository.save(campaign);
     }
 }
-
-
